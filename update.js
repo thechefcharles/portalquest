@@ -46,6 +46,7 @@ function updatePlayer(state, dt) {
   player.x = Math.max(0, Math.min(fieldWidth - player.w, player.x));
   player.y = Math.max(0, Math.min(fieldHeight - player.h, player.y));
 
+  // collide with walls
   for (const obs of currentLevel.obstacles) {
     if (rectsOverlap(player, obs)) {
       const movedHorizontally = player.x !== oldX;
@@ -61,7 +62,33 @@ function updatePlayer(state, dt) {
       }
     }
   }
-}
+
+  // collide with locked doors
+  for (let i = state.doors.length - 1; i >= 0; i--) {
+    const door = state.doors[i];
+
+    if (rectsOverlap(player, door)) {
+      if (state.hasKey) {
+        // use key to unlock door
+        state.hasKey = false;
+        state.doors.splice(i, 1); // remove door
+      } else {
+        // treat as wall
+        const movedHorizontally = player.x !== oldX;
+        const movedVertically = player.y !== oldY;
+
+        if (movedHorizontally && !movedVertically) {
+          player.x = oldX;
+        } else if (!movedHorizontally && movedVertically) {
+          player.y = oldY;
+        } else {
+          player.x = oldX;
+          player.y = oldY;
+        }
+      }
+    }
+  }
+} // 👈 this was missing
 
 function updateEnemies(state, dt) {
   const { enemies, currentLevel, player } = state;
@@ -179,7 +206,7 @@ function updateTraps(state, dt) {
   let isOnGlueNow = false;
 
   const px = player.x + player.w / 2;
-  const py = player.y + player.h / 2;
+  const py = player.y + player.w / 2;
 
   traps.forEach((t) => {
     const inside =
@@ -217,6 +244,59 @@ function updateTraps(state, dt) {
     if (player.poisonTimer < 0) player.poisonTimer = 0;
     state.timeLeft = Math.max(0, state.timeLeft - dt * 0.5);
   }
+}
+
+function updateKeys(state, dt) {
+  const { player, keyItems } = state;
+  if (!keyItems || keyItems.length === 0) return;
+
+  const px = player.x + player.w / 2;
+  const py = player.y + player.h / 2;
+
+  for (let i = keyItems.length - 1; i >= 0; i--) {
+    const k = keyItems[i];
+    const d = distance(px, py, k.x, k.y);
+
+    if (d < k.r + Math.min(player.w, player.h) / 2) {
+      state.hasKey = true;
+      keyItems.splice(i, 1);
+      state.score += 50;
+    }
+  }
+}
+
+function updateSwitches(state, dt) {
+  const { player, switches, doors } = state;
+  if (!switches || switches.length === 0) return;
+  if (!doors || doors.length === 0) return;
+
+  const px = player.x + player.w / 2;
+  const py = player.y + player.h / 2;
+
+  switches.forEach((sw) => {
+    if (sw.activated) return;
+
+    const inside =
+      px >= sw.x &&
+      px <= sw.x + sw.w &&
+      py >= sw.y &&
+      py <= sw.y + sw.h;
+
+    if (!inside) return;
+
+    // Activate the switch
+    sw.activated = true;
+
+    // Open doors that match any of sw.doorIds
+    if (sw.doorIds && sw.doorIds.length > 0) {
+      for (let i = doors.length - 1; i >= 0; i--) {
+        const d = doors[i];
+        if (d.id && sw.doorIds.includes(d.id)) {
+          doors.splice(i, 1); // remove door (permanently open)
+        }
+      }
+    }
+  });
 }
 
 function checkPortalCollision(state) {
@@ -295,5 +375,7 @@ export function update(state, dt) {
   updateEnemies(state, dt);
   updatePowerups(state, dt);
   updateTraps(state, dt);
+  updateKeys(state, dt);
+  updateSwitches(state, dt);
   checkPortalCollision(state);
 }

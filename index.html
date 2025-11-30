@@ -2,26 +2,361 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Portal Escape</title>
+    <title>PortalQuest</title>
     <style>
       body {
         margin: 0;
         height: 100vh;
         display: flex;
         justify-content: center;
+        align-items: stretch;
+        background: radial-gradient(circle at top, #1c2541 0%, #0b1020 40%, #020308 100%);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        color: #f5f5f5;
+      }
+
+      #app {
+        display: flex;
+        flex-direction: row;
+        gap: 16px;
+        width: 100%;
+        max-width: 1200px;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+
+      #leftPanel,
+      #rightPanel {
+        width: 230px;
+        background: rgba(3, 7, 18, 0.85);
+        border-radius: 10px;
+        padding: 12px;
+        box-sizing: border-box;
+        box-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
+        overflow-y: auto;
+        max-height: calc(100vh - 32px);
+      }
+
+      #centerPanel {
+        flex: 1;
+        display: flex;
+        justify-content: center;
         align-items: center;
-        background: #333;
       }
 
       canvas {
-        border: 2px solid #fff;
-        background: #335b1a; /* field color */
+        border: 2px solid #6ef2ff;
+        background: #050914;
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        letter-spacing: 0.05em;
+      }
+
+      h2 {
+        font-size: 14px;
+        margin: 12px 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.8;
+      }
+
+      .hud-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+
+      #statusText {
+        font-size: 12px;
+        margin-top: 8px;
+        opacity: 0.85;
+      }
+
+      #levelButtons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .level-btn {
+        flex: 1 0 30%;
+        font-size: 12px;
+        padding: 4px 6px;
+        border-radius: 6px;
+        border: 1px solid #4b5563;
+        background: #111827;
+        color: #e5e7eb;
+        cursor: pointer;
+      }
+
+      .level-btn.active {
+        background: #2563eb;
+        border-color: #60a5fa;
+      }
+
+      .level-btn:hover {
+        background: #1f2937;
+      }
+
+      #resetBtn {
+        width: 100%;
+        margin-top: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid #f97316;
+        background: #7c2d12;
+        color: #ffedd5;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      #resetBtn:hover {
+        background: #9a3412;
+      }
+
+      .legend-item {
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+        padding-bottom: 6px;
+      }
+
+      .legend-title {
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .legend-icon {
+        display: inline-block;
+        min-width: 18px;
+        text-align: center;
+        margin-right: 6px;
+      }
+
+      .legend-desc {
+        font-size: 12px;
+        opacity: 0.9;
+        margin-top: 2px;
       }
     </style>
   </head>
   <body>
-    <canvas id="game" width="568" height="390"></canvas>
-    <!-- Entry point -->
+    <div id="app">
+      <!-- LEFT PANEL: HUD + LEVEL SELECT -->
+      <aside id="leftPanel">
+        <h1>PortalQuest</h1>
+
+        <h2>Game Info</h2>
+        <div id="hud">
+          <div class="hud-row">
+            <span>Level</span><span id="hudLevel">1</span>
+          </div>
+          <div class="hud-row">
+            <span>Time</span><span id="hudTime">90.0</span>
+          </div>
+          <div class="hud-row">
+            <span>Score</span><span id="hudScore">0</span>
+          </div>
+          <div class="hud-row">
+            <span>Lives</span><span id="hudLives">3</span>
+          </div>
+          <div class="hud-row">
+            <span>Dash</span><span id="hudDash">0</span>
+          </div>
+          <div class="hud-row">
+            <span>Key</span><span id="hudKey">NO</span>
+          </div>
+          <div id="statusText">Status: normal</div>
+        </div>
+
+        <h2>Controls</h2>
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">
+          Move: WASD / Arrows<br />
+          Dash: Space<br />
+          Reset: R
+        </div>
+
+        <h2>Level Select</h2>
+        <div id="levelButtons">
+          <!-- These buttons map directly to level indices -->
+          <button class="level-btn" data-level="0">L0</button>
+          <button class="level-btn" data-level="1">L1</button>
+          <button class="level-btn" data-level="2">L2</button>
+          <button class="level-btn" data-level="3">L3</button>
+          <button class="level-btn" data-level="4">L4</button>
+        </div>
+        <button id="resetBtn">Reset Game</button>
+      </aside>
+
+      <!-- CENTER PANEL: GAME CANVAS -->
+      <main id="centerPanel">
+        <canvas id="game" width="568" height="390"></canvas>
+      </main>
+
+      <!-- RIGHT PANEL: LEGEND -->
+      <aside id="rightPanel">
+        <h2>Legend</h2>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">🟨</span> Player
+          </div>
+          <div class="legend-desc">
+            You. Move with WASD / Arrows. Dash with Space. Avoid enemies and traps, reach the portal.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">⭕</span> Portal
+          </div>
+          <div class="legend-desc">
+            Glowing ring. Reach this to complete the level.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">⬛</span> Walls
+          </div>
+          <div class="legend-desc">
+            Solid obstacles. You and enemies cannot pass through them.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">🔒</span> Key Door
+          </div>
+          <div class="legend-desc">
+            Purple door with a lock. Requires a key to open. Walk into it while holding a key to unlock it.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">⏻</span> Switch Door
+          </div>
+          <div class="legend-desc">
+            Teal door with power symbol. Opens when you activate a linked floor switch.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">🔑</span> Key
+          </div>
+          <div class="legend-desc">
+            Gold key pickup. Collect to set KEY: YES and unlock key-doors in that level.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">⏺</span> Floor Switch
+          </div>
+          <div class="legend-desc">
+            Small glowing plate. Stepping on it permanently opens linked switch-doors.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">S</span> Speed Orb
+          </div>
+          <div class="legend-desc">
+            Yellow orb with "S". Temporarily increases movement speed.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">🛡️</span> Shield Orb
+          </div>
+          <div class="legend-desc">
+            Blue shield icon. Gives you a temporary shield that absorbs one enemy/trap hit.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">👟</span> Dash Orb
+          </div>
+          <div class="legend-desc">
+            Sneaker icon. Grants dash charges. Press Space to dash in the last movement direction.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">💧</span> Glue
+          </div>
+          <div class="legend-desc">
+            Light blue puddle. Halves movement speed while standing in it.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">🔥</span> Fire
+          </div>
+          <div class="legend-desc">
+            Orange tile. Deals damage on contact.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">☠️</span> Poison
+          </div>
+          <div class="legend-desc">
+            Green hazard. Applies poison that slowly drains your remaining time.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">⚠️</span> Spikes
+          </div>
+          <div class="legend-desc">
+            Spiky strip. Deals heavy damage if you touch it.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">🟥</span> Patrol Enemy
+          </div>
+          <div class="legend-desc">
+            Moves back and forth in a line. Hitting it costs a life (unless shielded).
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">🔺</span> Chaser Enemy
+          </div>
+          <div class="legend-desc">
+            Triangle-shaped enemy that slowly homes in on you.
+          </div>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-title">
+            <span class="legend-icon">🌀</span> Spinner Enemy
+          </div>
+          <div class="legend-desc">
+            Circular ring enemy that orbits a point. Avoid crossing its path.
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
     <script type="module" src="./main.js"></script>
   </body>
 </html>

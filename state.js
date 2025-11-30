@@ -35,6 +35,12 @@ export function createInitialState(canvas, ctx) {
     powerups: [],
     traps: [],
 
+    // new key / door state
+    keyItems: [],
+    doors: [],
+    switches: [],
+    hasKey: false,
+
     timeLeft: 90,
     score: 0,
     lives: MAX_LIVES,
@@ -74,6 +80,17 @@ export function loadLevel(state, index) {
     ? state.currentLevel.traps.map((t) => ({ ...t }))
     : [];
 
+  state.keyItems = state.currentLevel.keys
+    ? state.currentLevel.keys.map((k) => ({ ...k }))
+    : [];
+  state.doors = state.currentLevel.doors
+    ? state.currentLevel.doors.map((d) => ({ ...d }))
+    : [];
+  state.switches = state.currentLevel.switches
+    ? state.currentLevel.switches.map((s) => ({ ...s, activated: false }))
+    : [];
+  state.hasKey = false;    
+
   validateEnemiesNotInWalls(state);
   validatePowerupsNotInWalls(state);
   validateTrapsNotInWalls(state);
@@ -95,6 +112,7 @@ export function resetGame(state) {
   state.timeLeft = 90;
   state.gameOver = false;
   state.gameWon = false;
+  
 
   const p = state.player;
   p.speedBoostTimer = 0;
@@ -106,6 +124,12 @@ export function resetGame(state) {
   p.dashCharges = 0;
   p.lastMoveDirX = 1;
   p.lastMoveDirY = 0;
+
+  state.hasKey = false;
+  state.keyItems = [];
+  state.doors = [];
+  state.switches = [];
+  
 
   loadLevel(state, 0);
 }
