@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #333;
+}
+
+canvas {
+  border: 2px solid #fff;
+  background: #335b1a; /* field color */
+}
