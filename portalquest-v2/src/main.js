@@ -3,6 +3,8 @@ import { createGameState } from './core/state.js';
 import { updateGame } from './engine/engine.js';
 import { renderGame } from './renderer/renderGame.js';
 import { updateHUDDom } from './ui/hudDom.js';
+import { tryDash } from './engine/systems/dashSystem.js';
+
 import {
   showMainMenu,
   showQuestScreen,
@@ -216,7 +218,7 @@ if (questcompleteMainMenuBtn) {
   });
 }
 
-// ===== Keyboard: Movement + Pause + Dash-ready =====
+// ===== Keyboard: Movement + Pause + Dash =====
 window.addEventListener('keydown', (e) => {
   // Prevent arrow keys / space from scrolling the page
   const movementKeys = [
@@ -229,13 +231,14 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
   }
 
-  // Movement input (only matters during quest gameplay)
+  // Movement & dash input (only matters during quest gameplay)
   if (state.mode === 'quest' && state.quest && state.quest.status === 'playing') {
     state.keysDown[e.key] = true;
 
-    // If your dash system listens to keysDown[' '] or keysDown['Space'],
-    // it will now see spacebar presses properly.
-    // If later we want a direct dash trigger, we can add it here.
+    // 🚀 DASH on Spacebar
+    if (e.key === ' ' || e.code === 'Space') {
+      tryDash(state);
+    }
   }
 
   // Pause toggle
@@ -250,6 +253,13 @@ window.addEventListener('keydown', (e) => {
     }
   }
 });
+
+window.addEventListener('keyup', (e) => {
+  if (state.keysDown && state.keysDown[e.key]) {
+    state.keysDown[e.key] = false;
+  }
+});
+
 
 window.addEventListener('keyup', (e) => {
   if (state.keysDown && state.keysDown[e.key]) {
