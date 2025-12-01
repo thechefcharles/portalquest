@@ -35,6 +35,12 @@ export function createInitialState(canvas, ctx) {
     powerups: [],
     traps: [],
 
+    // new key / door state
+    keyItems: [],
+    doors: [],
+    switches: [],
+    hasKey: false,
+
     timeLeft: 90,
     score: 0,
     lives: MAX_LIVES,
@@ -50,9 +56,16 @@ export function createInitialState(canvas, ctx) {
       y: canvas.height / 2 + 40,
       w: 120,
       h: 30
-    }
-  };
+    },
 
+    // Editor / custom-level flags
+    editorMode: false,
+    editorTool: "wall",
+    isCustomTestMode: false,
+    customLevelTemplate: null,
+    selectedEntity: null
+  };
+  
   loadLevel(state, 0);
   return state;
 }
@@ -73,6 +86,39 @@ export function loadLevel(state, index) {
   state.traps = state.currentLevel.traps
     ? state.currentLevel.traps.map((t) => ({ ...t }))
     : [];
+
+  state.keyItems = state.currentLevel.keys
+    ? state.currentLevel.keys.map((k) => ({ ...k }))
+    : [];
+  state.doors = state.currentLevel.doors
+    ? state.currentLevel.doors.map((d) => ({ ...d }))
+    : [];
+  state.switches = state.currentLevel.switches
+    ? state.currentLevel.switches.map((s) => ({ ...s, activated: false }))
+    : [];
+  state.hasKey = false;    
+
+  validateEnemiesNotInWalls(state);
+  validatePowerupsNotInWalls(state);
+  validateTrapsNotInWalls(state);
+  placePlayerAtStart(state);
+}
+
+export function loadCustomLevel(state, levelObj) {
+  // Use -1 to indicate "custom level", not a built-in one
+  state.currentLevelIndex = -1;
+  state.currentLevel = levelObj;
+  state.customLevelTemplate = levelObj;
+
+  state.enemies = levelObj.enemies ? levelObj.enemies.map((e) => ({ ...e })) : [];
+  state.powerups = levelObj.powerups ? levelObj.powerups.map((p) => ({ ...p })) : [];
+  state.traps = levelObj.traps ? levelObj.traps.map((t) => ({ ...t })) : [];
+  state.keyItems = levelObj.keys ? levelObj.keys.map((k) => ({ ...k })) : [];
+  state.doors = levelObj.doors ? levelObj.doors.map((d) => ({ ...d })) : [];
+  state.switches = levelObj.switches
+    ? levelObj.switches.map((s) => ({ ...s, activated: s.activated || false }))
+    : [];
+  state.hasKey = false;
 
   validateEnemiesNotInWalls(state);
   validatePowerupsNotInWalls(state);
@@ -95,6 +141,7 @@ export function resetGame(state) {
   state.timeLeft = 90;
   state.gameOver = false;
   state.gameWon = false;
+  
 
   const p = state.player;
   p.speedBoostTimer = 0;
@@ -106,6 +153,15 @@ export function resetGame(state) {
   p.dashCharges = 0;
   p.lastMoveDirX = 1;
   p.lastMoveDirY = 0;
+
+  state.hasKey = false;
+  state.keyItems = [];
+  state.doors = [];
+  state.switches = [];
+
+  state.isCustomTestMode = false;
+  state.customLevelTemplate = null;
+  
 
   loadLevel(state, 0);
 }

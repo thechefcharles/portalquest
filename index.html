@@ -2,26 +2,614 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Portal Escape</title>
+    <title>PortalQuest</title>
     <style>
       body {
         margin: 0;
         height: 100vh;
         display: flex;
         justify-content: center;
+        align-items: stretch;
+        background: radial-gradient(circle at top, #1c2541 0%, #0b1020 40%, #020308 100%);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        color: #f5f5f5;
+      }
+
+      #appWrapper {
+        width: 100%;
+        max-width: 1200px;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+
+      /* MAIN MENU */
+      #homeScreen {
+        display: flex;
         align-items: center;
-        background: #333;
+        justify-content: center;
+        height: 100%;
+      }
+
+      .menu-card {
+        background: rgba(3, 7, 18, 0.9);
+        padding: 32px 40px;
+        border-radius: 18px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+        text-align: center;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+
+      .menu-title {
+        font-size: 32px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 10px;
+      }
+
+      .menu-subtitle {
+        font-size: 14px;
+        color: #e5e7eb;
+        opacity: 0.9;
+        margin-bottom: 24px;
+      }
+
+      .menu-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      .menu-btn {
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      #playModeBtn {
+        border-color: #22c55e;
+        background: #14532d;
+        color: #bbf7d0;
+      }
+
+      #playModeBtn:hover {
+        background: #166534;
+      }
+
+      #creatorModeBtn {
+        border-color: #60a5fa;
+        background: #1e3a8a;
+        color: #dbeafe;
+      }
+
+      #creatorModeBtn:hover {
+        background: #1d4ed8;
+      }
+
+      /* GAME LAYOUT */
+      #app {
+        display: none; /* hidden until Play or Create is chosen */
+        display: grid;
+        grid-template-columns: 230px 1fr 230px;
+        gap: 16px;
+        height: calc(100vh - 32px);
+      }
+
+      #leftPanelPlay,
+      #leftPanelEditor,
+      #rightPanel {
+        background: rgba(3, 7, 18, 0.85);
+        border-radius: 10px;
+        padding: 12px;
+        box-sizing: border-box;
+        box-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
+        overflow-y: auto;
+      }
+
+      #leftPanelEditor {
+        display: none; /* start with play panel visible */
+      }
+
+      #centerPanel {
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
 
       canvas {
-        border: 2px solid #fff;
-        background: #335b1a; /* field color */
+        border: 2px solid #6ef2ff;
+        background: #050914;
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        letter-spacing: 0.05em;
+      }
+
+      h2 {
+        font-size: 14px;
+        margin: 12px 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.8;
+      }
+
+      .hud-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+
+      #statusText {
+        font-size: 12px;
+        margin-top: 8px;
+        opacity: 0.85;
+      }
+
+      #levelButtons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .level-btn {
+        flex: 1 0 30%;
+        font-size: 12px;
+        padding: 4px 6px;
+        border-radius: 6px;
+        border: 1px solid #4b5563;
+        background: #111827;
+        color: #e5e7eb;
+        cursor: pointer;
+      }
+
+      .level-btn.active {
+        background: #2563eb;
+        border-color: #60a5fa;
+      }
+
+      .level-btn:hover {
+        background: #1f2937;
+      }
+
+      #resetBtn,
+      .nav-btn {
+        width: 100%;
+        margin-top: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid #6b7280;
+        background: #111827;
+        color: #e5e7eb;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      #resetBtn:hover,
+      .nav-btn:hover {
+        background: #1f2937;
+      }
+
+      .tool-btn {
+        flex: 1 0 45%;
+        font-size: 11px;
+        padding: 4px 4px;
+        border-radius: 6px;
+        border: 1px solid #4b5563;
+        background: #030712;
+        color: #e5e7eb;
+        cursor: pointer;
+      }
+
+      /* active tool is bright green immediately */
+      .tool-btn.active {
+        background: #16a34a !important;
+        border-color: #4ade80;
+        color: #ecfdf5;
+      }
+
+      /* hover only when not active */
+      .tool-btn:not(.active):hover {
+        background: #111827;
+      }
+
+      .tool-section {
+        border: 1px solid rgba(55, 65, 81, 0.7);
+        border-radius: 8px;
+        padding: 6px;
+        background: rgba(15, 23, 42, 0.8);
+      }
+
+      .tool-section-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        opacity: 0.8;
+        margin-bottom: 4px;
+      }
+
+      .tool-row {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 4px;
+      }
+
+      /* Legend */
+
+      .legend-item {
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+        padding-bottom: 6px;
+      }
+
+      .legend-title {
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .legend-icon {
+        display: inline-block;
+        min-width: 18px;
+        text-align: center;
+        margin-right: 6px;
+      }
+
+      .legend-desc {
+        font-size: 12px;
+        opacity: 0.9;
+        margin-top: 2px;
       }
     </style>
   </head>
   <body>
-    <canvas id="game" width="568" height="390"></canvas>
-    <!-- Entry point -->
+    <div id="appWrapper">
+      <!-- HOME SCREEN -->
+      <div id="homeScreen">
+        <div class="menu-card">
+          <div class="menu-title">PORTALQUEST</div>
+          <div class="menu-subtitle">
+            A puzzle-arcade game where you dodge enemies, unlock paths, and escape through portals.
+          </div>
+          <div class="menu-buttons">
+            <button id="playModeBtn" class="menu-btn">Play Levels</button>
+            <button id="creatorModeBtn" class="menu-btn">Create Levels</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAME APP (shown after choosing a mode) -->
+      <div id="app">
+        <!-- LEFT PANEL: Play Mode (HUD + Level Select) -->
+        <aside id="leftPanelPlay">
+          <h1>PortalQuest</h1>
+
+          <h2>Game Info</h2>
+          <div id="hud">
+            <div class="hud-row">
+              <span>Level</span><span id="hudLevel">1</span>
+            </div>
+            <div class="hud-row">
+              <span>Time</span><span id="hudTime">90.0</span>
+            </div>
+            <div class="hud-row">
+              <span>Score</span><span id="hudScore">0</span>
+            </div>
+            <div class="hud-row">
+              <span>Lives</span><span id="hudLives">3</span>
+            </div>
+            <div class="hud-row">
+              <span>Dash</span><span id="hudDash">0</span>
+            </div>
+            <div class="hud-row">
+              <span>Key</span><span id="hudKey">NO</span>
+            </div>
+            <div id="statusText">Status: normal</div>
+          </div>
+
+          <h2>Controls</h2>
+          <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">
+            Move: WASD / Arrows<br />
+            Dash: Space<br />
+            Reset: R
+          </div>
+
+          <h2>Levels</h2>
+          <div id="levelButtons">
+            <button class="level-btn" data-level="0">L1</button>
+            <button class="level-btn" data-level="1">L2</button>
+            <button class="level-btn" data-level="2">L3</button>
+            <button class="level-btn" data-level="3">L4</button>
+            <button class="level-btn" data-level="4">L5</button>
+          </div>
+
+          <button id="resetBtn">Reset Run</button>
+          <button id="backFromPlayBtn" class="nav-btn">Main Menu</button>
+        </aside>
+
+        <!-- LEFT PANEL: Editor Mode (separate view) -->
+        <aside id="leftPanelEditor">
+          <h1>Level Creator</h1>
+
+          <p style="font-size: 12px; opacity: 0.9;">
+            Build a level from scratch. Place walls, choose the player start, and position the portal.
+          </p>
+
+          <h2>Tools</h2>
+          <div id="editorTools" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+
+            <!-- Layout -->
+            <div class="tool-section">
+              <div class="tool-section-title">Layout</div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="wall">🧱 Wall</button>
+                <button class="tool-btn" data-tool="erase">❌ Erase</button>
+              </div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="player">🟨 Player Start</button>
+                <button class="tool-btn" data-tool="portal">⭕ Portal</button>
+              </div>
+            </div>
+
+            <!-- Enemies -->
+            <div class="tool-section">
+              <div class="tool-section-title">Enemies</div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="enemy_patrol">🟥 Patrol</button>
+                <button class="tool-btn" data-tool="enemy_chaser">🔺 Chaser</button>
+              </div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="enemy_spinner">🌀 Spinner</button>
+              </div>
+            </div>
+
+            <!-- Powerups -->
+            <div class="tool-section">
+              <div class="tool-section-title">Powerups</div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="power_speed">S Speed</button>
+                <button class="tool-btn" data-tool="power_shield">🛡️ Shield</button>
+              </div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="power_dash">👟 Dash</button>
+              </div>
+            </div>
+
+            <!-- Hazards -->
+            <div class="tool-section">
+              <div class="tool-section-title">Hazards</div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="trap_glue">💧 Glue</button>
+                <button class="tool-btn" data-tool="trap_fire">🔥 Fire</button>
+              </div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="trap_poison">☠️ Poison</button>
+                <button class="tool-btn" data-tool="trap_spike">⚠️ Spikes</button>
+              </div>
+            </div>
+
+            <!-- Logic -->
+            <div class="tool-section">
+              <div class="tool-section-title">Logic</div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="key">🔑 Key</button>
+                <button class="tool-btn" data-tool="door_key">🔒 Key Door</button>
+              </div>
+              <div class="tool-row">
+                <button class="tool-btn" data-tool="switch">⏺ Switch</button>
+                <button class="tool-btn" data-tool="door_switch">⏻ Switch Door</button>
+              </div>
+            </div>
+
+          </div>
+
+          <h2>Selected</h2>
+          <div id="selectionInfo" style="font-size: 12px; min-height: 38px; opacity: 0.9;">
+            Nothing selected
+          </div>
+
+          <button
+            id="deleteBtn"
+            class="level-btn"
+            style="width: 100%; margin-top: 4px; opacity: 0.4; cursor: default;"
+          >
+            Delete Selected
+          </button>
+
+          <button
+            id="togglePatrolAxisBtn"
+            class="level-btn"
+            style="width: 100%; margin-top: 4px; display: none;"
+          >
+            Toggle Patrol Direction
+          </button>
+
+          <button id="testCustomBtn" class="level-btn" style="width: 100%; margin-top: 8px;">
+            Test Custom Level
+          </button>
+
+          <button
+            id="endTestBtn"
+            class="level-btn"
+            style="width: 100%; margin-top: 4px; display: none;"
+          >
+            Return to Editor
+          </button>
+
+          <button id="backFromEditorBtn" class="nav-btn">Main Menu</button>
+        </aside>
+
+        <!-- CENTER PANEL: GAME CANVAS -->
+        <main id="centerPanel">
+          <canvas id="game" width="568" height="390"></canvas>
+        </main>
+
+        <!-- RIGHT PANEL: LEGEND -->
+        <aside id="rightPanel">
+          <h2>Legend</h2>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">🟨</span> Player
+            </div>
+            <div class="legend-desc">
+              You. Move with WASD / Arrows. Dash with Space. Avoid enemies and traps, reach the portal.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">⭕</span> Portal
+            </div>
+            <div class="legend-desc">
+              Glowing ring. Reach this to complete the level.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">⬛</span> Walls
+            </div>
+            <div class="legend-desc">
+              Solid obstacles. You and enemies cannot pass through them.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">🔒</span> Key Door
+            </div>
+            <div class="legend-desc">
+              Purple door with a lock. Requires a key to open.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">⏻</span> Switch Door
+            </div>
+            <div class="legend-desc">
+              Teal door with power symbol. Opens when a linked floor switch is activated.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">🔑</span> Key
+            </div>
+            <div class="legend-desc">
+              Gold key pickup. Collect to unlock key doors in the level.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">⏺</span> Floor Switch
+            </div>
+            <div class="legend-desc">
+              Glowing plate. Stepping on it permanently opens linked switch doors.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">S</span> Speed Orb
+            </div>
+            <div class="legend-desc">
+              Yellow orb with "S". Temporarily increases movement speed.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">🛡️</span> Shield Orb
+            </div>
+            <div class="legend-desc">
+              Protects you from one hit for a short time.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">👟</span> Dash Orb
+            </div>
+            <div class="legend-desc">
+              Grants dash charges. Press Space to dash in the last movement direction.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">💧</span> Glue
+            </div>
+            <div class="legend-desc">
+              Light blue puddle. Slows movement while standing in it.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">🔥</span> Fire
+            </div>
+            <div class="legend-desc">
+              Deals damage on contact.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">☠️</span> Poison
+            </div>
+            <div class="legend-desc">
+              Drains remaining time while active.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">⚠️</span> Spikes
+            </div>
+            <div class="legend-desc">
+              Deals heavy damage if you touch it.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">🟥</span> Patrol Enemy
+            </div>
+            <div class="legend-desc">
+              Moves back and forth in a line. Hitting it costs a life.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">🔺</span> Chaser Enemy
+            </div>
+            <div class="legend-desc">
+              Triangle-shaped enemy that slowly homes in on you.
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-title">
+              <span class="legend-icon">🌀</span> Spinner Enemy
+            </div>
+            <div class="legend-desc">
+              Circular enemy that orbits a point. Avoid crossing its path.
+            </div>
+          </div>
+
+        </aside>
+      </div>
+    </div>
+
     <script type="module" src="./main.js"></script>
   </body>
 </html>
