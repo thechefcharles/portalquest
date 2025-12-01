@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>PortalQuest v2</title>
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        background: radial-gradient(circle at top, #1c2541 0%, #0b1020 40%, #020308 100%);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        color: #f5f5f5;
+      }
+
+      #app {
+        width: 100%;
+        max-width: 1200px;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+
+      /* MAIN MENU */
+
+      #homeScreen {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: calc(100vh - 32px);
+      }
+
+      .menu-card {
+        background: rgba(3, 7, 18, 0.9);
+        padding: 32px 40px;
+        border-radius: 18px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+        text-align: center;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+
+      .menu-title {
+        font-size: 32px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 10px;
+      }
+
+      .menu-subtitle {
+        font-size: 14px;
+        color: #e5e7eb;
+        opacity: 0.9;
+        margin-bottom: 24px;
+      }
+
+      .menu-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        justify-content: center;
+      }
+
+      .menu-btn {
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      #btnPlayQuest {
+        border-color: #22c55e;
+        background: #14532d;
+        color: #bbf7d0;
+      }
+
+      #btnPlayQuest:hover {
+        background: #166534;
+      }
+
+      #btnQuit {
+        border-color: #4b5563;
+        background: #111827;
+        color: #e5e7eb;
+      }
+
+      #btnQuit:hover {
+        background: #1f2937;
+      }
+
+      /* QUEST SCREEN */
+
+      #questScreen {
+        display: none;
+        grid-template-columns: 260px 1fr;
+        gap: 16px;
+        height: calc(100vh - 32px);
+      }
+
+      #questSidebar {
+        background: rgba(3, 7, 18, 0.9);
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+      }
+
+      #questSidebar h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #questSidebar h2 {
+        font-size: 13px;
+        margin: 10px 0 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.8;
+      }
+
+      #hudPanel {
+        font-size: 13px;
+      }
+
+      .hud-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2px;
+      }
+
+      .hud-label {
+        opacity: 0.85;
+      }
+
+      .hud-value {
+        font-weight: 600;
+      }
+
+      .hud-status {
+        font-size: 12px;
+        margin-top: 6px;
+        opacity: 0.9;
+      }
+
+      .quest-btn {
+        width: 100%;
+        margin-top: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid #6b7280;
+        background: #111827;
+        color: #e5e7eb;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .quest-btn:hover {
+        background: #1f2937;
+      }
+
+      #gameContainer {
+        background: rgba(3, 7, 18, 0.85);
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 0 16px rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-sizing: border-box;
+      }
+
+      canvas {
+        display: block;
+        border: 2px solid #6ef2ff;
+        background: #050914;
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+      }
+
+      #questOverlayHint {
+        margin-top: 8px;
+        font-size: 12px;
+        opacity: 0.8;
+        text-align: center;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+      #levelSelectScreen {
+  display: none;
+}
+
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- MAIN MENU -->
+      <div id="homeScreen">
+        <div class="menu-card">
+          <div class="menu-title">PORTALQUEST</div>
+          <div class="menu-subtitle">
+            Dodge enemies, dodge traps, unlock doors, and reach the portal.
+          </div>
+<div class="menu-buttons">
+  <button id="btnPlayQuest" class="menu-btn">Play Quest</button>
+  <button id="btnLevelSelect" class="menu-btn">Level Select</button>
+  <!-- Future: Create Levels, PvP, etc. -->
+  <button id="btnQuit" class="menu-btn">Quit</button>
+</div>
+
+</div>
+      </div>
+
+            <!-- LEVEL SELECT SCREEN -->
+      <div id="levelSelectScreen" style="display: none; align-items: center; justify-content: center; height: calc(100vh - 32px);">
+        <div class="menu-card">
+          <div class="menu-title">Select Level</div>
+          <div class="menu-subtitle">
+            Choose a quest level to start from.
+          </div>
+          <div id="levelSelectList" class="menu-buttons" style="margin-bottom: 12px;"></div>
+          <button id="btnLevelSelectBack" class="menu-btn">Back to Main Menu</button>
+        </div>
+      </div>
+
+
+      <!-- QUEST SCREEN -->
+      <div id="questScreen">
+        <aside id="questSidebar">
+          <h1>PortalQuest</h1>
+
+          <h2>Status</h2>
+          <div id="hudPanel">
+            <div class="hud-row">
+              <span class="hud-label">Level</span>
+              <span id="hudLevel" class="hud-value">1</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Lives</span>
+              <span id="hudLives" class="hud-value">3</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Health</span>
+              <span id="hudHealth" class="hud-value">100</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Score</span>
+              <span id="hudScore" class="hud-value">0</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Dash</span>
+              <span id="hudDash" class="hud-value">0</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Key</span>
+              <span id="hudKey" class="hud-value">NO</span>
+            </div>
+            <div id="hudStatus" class="hud-status">Status: normal</div>
+          </div>
+
+          <h2>Controls</h2>
+          <div style="font-size: 12px; opacity: 0.9;">
+            Move: WASD / Arrows<br />
+            Dash: Space<br />
+            Restart Level: R (later)<br />
+          </div>
+
+          <h2>Quest</h2>
+          <button id="btnRestartLevel" class="quest-btn">Restart Level</button>
+          <button id="btnRestartQuest" class="quest-btn">Restart Quest</button>
+          <button id="btnBackToMenu" class="quest-btn">Back to Main Menu</button>
+        </aside>
+
+        <main id="gameContainer">
+          <canvas id="game" width="568" height="390"></canvas>
+          <div id="questOverlayHint">
+            Reach the glowing portal. Avoid enemies and traps. Grab powerups to survive.
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
