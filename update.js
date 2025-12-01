@@ -1,7 +1,7 @@
 // update.js
 // All per-frame game logic (player, enemies, powerups, traps, portal)
 
-import { advanceToNextLevel, playerHit } from "./state.js";
+import { advanceToNextLevel, playerHit, loadCustomLevel } from "./state.js";
 
 function rectsOverlap(a, b) {
   return (
@@ -63,15 +63,36 @@ function updatePlayer(state, dt) {
     }
   }
 
-  // collide with locked doors
+  // collide with doors
   for (let i = state.doors.length - 1; i >= 0; i--) {
     const door = state.doors[i];
 
-    if (rectsOverlap(player, door)) {
+    if (!rectsOverlap(player, door)) continue;
+
+    const isSwitchDoor = door.type === "switch";
+    const isKeyDoor = !door.type || door.type === "key"; // default = key door
+
+    if (isSwitchDoor) {
+      // switch doors are NEVER opened by keys; always behave like walls here
+      const movedHorizontally = player.x !== oldX;
+      const movedVertically = player.y !== oldY;
+
+      if (movedHorizontally && !movedVertically) {
+        player.x = oldX;
+      } else if (!movedHorizontally && movedVertically) {
+        player.y = oldY;
+      } else {
+        player.x = oldX;
+        player.y = oldY;
+      }
+      continue;
+    }
+
+    if (isKeyDoor) {
       if (state.hasKey) {
-        // use key to unlock door
+        // use key to unlock this door
         state.hasKey = false;
-        state.doors.splice(i, 1); // remove door
+        state.doors.splice(i, 1);
       } else {
         // treat as wall
         const movedHorizontally = player.x !== oldX;
@@ -88,7 +109,7 @@ function updatePlayer(state, dt) {
       }
     }
   }
-} // 👈 this was missing
+}
 
 function updateEnemies(state, dt) {
   const { enemies, currentLevel, player } = state;
@@ -99,10 +120,21 @@ function updateEnemies(state, dt) {
     const oldY = e.y;
 
     if (e.type === "patrol") {
-      e.x += e.vx;
-      if (e.x < 0 || e.x + e.w > state.fieldWidth) {
-        e.vx *= -1;
-        e.x = Math.max(0, Math.min(state.fieldWidth - e.w, e.x));
+      const axis = e.axis || "horizontal";
+
+      if (axis === "horizontal") {
+        e.x += e.vx;
+        if (e.x < 0 || e.x + e.w > state.fieldWidth) {
+          e.vx *= -1;
+          e.x = Math.max(0, Math.min(state.fieldWidth - e.w, e.x));
+        }
+      } else {
+        // vertical patrol
+        e.y += e.vx;
+        if (e.y < 0 || e.y + e.h > state.fieldHeight) {
+          e.vx *= -1;
+          e.y = Math.max(0, Math.min(state.fieldHeight - e.h, e.y));
+        }
       }
     } else if (e.type === "chaser") {
       const playerCenterX = player.x + player.w / 2;
@@ -135,6 +167,7 @@ function updateEnemies(state, dt) {
       e.y = ey - e.h / 2;
     }
 
+    // prevent enemies from entering walls
     for (const obs of obstacles) {
       if (rectsOverlap(e, obs)) {
         e.x = oldX;
@@ -206,7 +239,7 @@ function updateTraps(state, dt) {
   let isOnGlueNow = false;
 
   const px = player.x + player.w / 2;
-  const py = player.y + player.w / 2;
+  const py = player.y + player.h / 2;
 
   traps.forEach((t) => {
     const inside =
@@ -295,6 +328,14 @@ function updateSwitches(state, dt) {
           doors.splice(i, 1); // remove door (permanently open)
         }
       }
+    } else {
+      // No explicit doorIds: default to "open all switch doors"
+      for (let i = doors.length - 1; i >= 0; i--) {
+        const d = doors[i];
+        if (d.type === "switch") {
+          doors.splice(i, 1);
+        }
+      }
     }
   });
 }
@@ -307,6 +348,21 @@ function checkPortalCollision(state) {
   const py = player.y + player.h / 2;
 
   if (distance(px, py, portal.x, portal.y) < portal.r) {
+
+    // CUSTOM TEST MODE: restart custom level instead of advancing
+    if (state.currentLevelIndex === -1 && state.isCustomTestMode) {
+      state.score += 150;
+      state.gameOver = false;
+      state.gameWon = false;
+      state.timeLeft = 90;
+
+      if (state.customLevelTemplate) {
+        loadCustomLevel(state, state.customLevelTemplate);
+      }
+      return;
+    }
+
+    // Normal level behavior
     state.score += 150;
     advanceToNextLevel(state);
   }

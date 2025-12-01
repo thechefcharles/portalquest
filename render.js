@@ -566,4 +566,64 @@ function roundedBlob(ctx, x, y, w, h) {
   );
   ctx.closePath();
   ctx.fill();
+
+  function drawSelectionHighlight(state) {
+  const sel = state.selectedEntity;
+  if (!sel || !state.currentLevel) return;
+
+  const lvl = state.currentLevel;
+  const { ctx } = state;
+
+  let o = null;
+
+  const pick = (arr, idx) => (arr && arr[idx] ? arr[idx] : null);
+
+  switch (sel.kind) {
+    case "wall":
+      o = pick(lvl.obstacles, sel.index);
+      break;
+    case "enemy":
+      o = pick(lvl.enemies, sel.index);
+      break;
+    case "powerup":
+      o = pick(lvl.powerups, sel.index);
+      if (o) {
+        // powerups are circles; build a fake rect around them for highlight
+        const r = o.r || 10;
+        o = { x: o.x - r, y: o.y - r, w: r * 2, h: r * 2 };
+      }
+      break;
+    case "trap":
+      o = pick(lvl.traps, sel.index);
+      break;
+    case "door":
+      o = pick(lvl.doors, sel.index);
+      break;
+    case "switch":
+      o = pick(lvl.switches, sel.index);
+      break;
+    case "key":
+      o = pick(lvl.keys, sel.index);
+      if (o) {
+        const r = o.r || 10;
+        o = { x: o.x - r, y: o.y - r, w: r * 2, h: r * 2 };
+      }
+      break;
+    default:
+      break;
+  }
+
+  if (!o) return;
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(252, 211, 77, 0.95)";
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4);
+  ctx.restore();
+}
+
+  drawPlayer(state);
+  drawSelectionHighlight(state);
+
 }

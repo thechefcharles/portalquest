@@ -56,9 +56,16 @@ export function createInitialState(canvas, ctx) {
       y: canvas.height / 2 + 40,
       w: 120,
       h: 30
-    }
-  };
+    },
 
+    // Editor / custom-level flags
+    editorMode: false,
+    editorTool: "wall",
+    isCustomTestMode: false,
+    customLevelTemplate: null,
+    selectedEntity: null
+  };
+  
   loadLevel(state, 0);
   return state;
 }
@@ -90,6 +97,28 @@ export function loadLevel(state, index) {
     ? state.currentLevel.switches.map((s) => ({ ...s, activated: false }))
     : [];
   state.hasKey = false;    
+
+  validateEnemiesNotInWalls(state);
+  validatePowerupsNotInWalls(state);
+  validateTrapsNotInWalls(state);
+  placePlayerAtStart(state);
+}
+
+export function loadCustomLevel(state, levelObj) {
+  // Use -1 to indicate "custom level", not a built-in one
+  state.currentLevelIndex = -1;
+  state.currentLevel = levelObj;
+  state.customLevelTemplate = levelObj;
+
+  state.enemies = levelObj.enemies ? levelObj.enemies.map((e) => ({ ...e })) : [];
+  state.powerups = levelObj.powerups ? levelObj.powerups.map((p) => ({ ...p })) : [];
+  state.traps = levelObj.traps ? levelObj.traps.map((t) => ({ ...t })) : [];
+  state.keyItems = levelObj.keys ? levelObj.keys.map((k) => ({ ...k })) : [];
+  state.doors = levelObj.doors ? levelObj.doors.map((d) => ({ ...d })) : [];
+  state.switches = levelObj.switches
+    ? levelObj.switches.map((s) => ({ ...s, activated: s.activated || false }))
+    : [];
+  state.hasKey = false;
 
   validateEnemiesNotInWalls(state);
   validatePowerupsNotInWalls(state);
@@ -129,6 +158,9 @@ export function resetGame(state) {
   state.keyItems = [];
   state.doors = [];
   state.switches = [];
+
+  state.isCustomTestMode = false;
+  state.customLevelTemplate = null;
   
 
   loadLevel(state, 0);
