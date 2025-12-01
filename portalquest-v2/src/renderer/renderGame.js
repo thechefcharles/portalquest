@@ -3,7 +3,8 @@
 
 import { COLORS } from "../core/config.js";
 
-export function drawGame(state, ctx) {
+// NOTE: ctx FIRST, state SECOND — matches main.js
+export function renderGame(ctx, state) {
   const {
     width,
     height,
@@ -19,7 +20,7 @@ export function drawGame(state, ctx) {
     gameWon,
     gameOver,
   } = state;
-  
+    
   // Background
   ctx.clearRect(0, 0, width, height);
 

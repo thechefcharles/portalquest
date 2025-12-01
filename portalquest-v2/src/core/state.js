@@ -13,37 +13,47 @@ import { QUEST_LEVELS } from "../data/questLevels.js";
 // Create a fresh GameState and load level 0
 export function createGameState() {
   const state = {
-mode: "menu",
+    mode: "menu",
+    isPaused: false, // NEW: used by pause menu & quest flow
+
+    // NEW: quest-specific state
+    quest: {
+      currentLevelIndex: 0,
+      lives: 3,
+      // 'idle' until startQuest() is called
+      // then 'playing' | 'levelComplete' | 'gameOver' | 'questComplete'
+      status: "idle",
+    },
 
     width: CANVAS_WIDTH,
     height: CANVAS_HEIGHT,
 
-    // Index into QUEST_LEVELS
+    // Legacy / generic level info (fine to keep)
     currentLevelIndex: 0,
     currentLevelId: null,
     currentLevel: null,
 
-    // Player (will be filled by loadLevelIntoState)
-player: {
-  x: 0,
-  y: 0,
-  w: PLAYER_WIDTH,
-  h: PLAYER_HEIGHT,
-  speed: PLAYER_BASE_SPEED,
+    // Player (will be positioned by loadLevelIntoState)
+    player: {
+      x: 0,
+      y: 0,
+      w: PLAYER_WIDTH,
+      h: PLAYER_HEIGHT,
+      speed: PLAYER_BASE_SPEED,
 
-  dashCharges: 0,
-  health: 100,
-  maxHealth: 100,
+      dashCharges: 0,
+      health: 100,
+      maxHealth: 100,
 
-  shieldTimer: 0,
-  speedBoostTimer: 0,
-  poisonTimer: 0,
-  hazardInvulnTimer: 0,
-  lastMoveDirX: 1,
-  lastMoveDirY: 0,
-  slowFactor: 1,
-  onFire: false,      // NEW: used for HUD + status
-},
+      shieldTimer: 0,
+      speedBoostTimer: 0,
+      poisonTimer: 0,
+      hazardInvulnTimer: 0,
+      lastMoveDirX: 1,
+      lastMoveDirY: 0,
+      slowFactor: 1,
+      onFire: false,      // used for HUD + status
+    },
 
     portal: { x: 0, y: 0, r: 18 },
 
@@ -61,6 +71,8 @@ player: {
 
     timeLeft: 999,
     score: 0,
+
+    // These are mostly for non-quest / generic modes now
     lives: 3,
     gameOver: false,
     gameWon: false,
@@ -68,7 +80,10 @@ player: {
     lastTime: 0,
   };
 
+  // Preload level 0 so the canvas has something to draw even before quest starts.
+  // startQuest() will re-load the level and set status = 'playing'.
   loadLevelIntoState(state, 0);
+
   return state;
 }
 
@@ -86,15 +101,15 @@ export function loadLevelIntoState(state, levelIndex) {
   state.currentLevel = level;
 
   // Reset player state for new level
-state.player.x = level.start.x;
-state.player.y = level.start.y;
-state.player.health = state.player.maxHealth;
-state.player.shieldTimer = 0;
-state.player.speedBoostTimer = 0;
-state.player.poisonTimer = 0;
-state.player.hazardInvulnTimer = 0;
-state.player.slowFactor = 1;
-state.player.onFire = false;    // reset fire status
+  state.player.x = level.start.x;
+  state.player.y = level.start.y;
+  state.player.health = state.player.maxHealth;
+  state.player.shieldTimer = 0;
+  state.player.speedBoostTimer = 0;
+  state.player.poisonTimer = 0;
+  state.player.hazardInvulnTimer = 0;
+  state.player.slowFactor = 1;
+  state.player.onFire = false; // reset fire status
 
   // Portal
   state.portal.x = level.portal.x;

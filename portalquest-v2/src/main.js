@@ -1,96 +1,72 @@
 // src/main.js
-// Entry: setup canvas, state, input, modes, and main loop
-
-import { createGameState } from "./core/state.js";
-import { updateGame } from "./engine/engine.js";
-import { drawGame } from "./renderer/renderGame.js";
-import { tryDash } from "./engine/systems/dashSystem.js";
-import {
-  startQuest,
-  restartQuest,
-  restartCurrentLevel,
-  startQuestAtLevel,
-} from "./modes/questMode.js";
+import { createGameState } from './core/state.js';
+import { updateGame } from './engine/engine.js';
+import { renderGame } from './renderer/renderGame.js';
+import { updateHUDDom } from './ui/hudDom.js';
 import {
   showMainMenu,
   showQuestScreen,
   showLevelSelectScreen,
-} from "./ui/menuDom.js";
-import { updateHUDDom } from "./ui/hudDom.js";
-import { QUEST_LEVELS } from "./data/questLevels.js";
+  showPauseOverlay,
+  hidePauseOverlay,
+  hideAllOverlays,
+  showLevelCompleteOverlay,
+  showGameOverOverlay,
+  showQuestCompleteOverlay,
+} from './ui/menuDom.js';
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+import { QUEST_LEVELS } from './data/questLevels.js';
+import {
+  startQuest,
+  startQuestAtLevel,   // NEW
+  restartQuest,
+  restartCurrentLevel,
+  advanceQuestLevel,
+} from './modes/questMode.js';
+
+// ===== Canvas Setup =====
+const canvas = document.getElementById('game');
+const ctx = canvas ? canvas.getContext('2d') : null;
 
 const state = createGameState();
 
-// ----- UI: Buttons -----
+// ===== Buttons (match your HTML) =====
+const playQuestBtn = document.getElementById('btnPlayQuest');
+const openLevelSelectBtn = document.getElementById('btnLevelSelect');
+const levelSelectBackBtn = document.getElementById('btnLevelSelectBack');
+const levelSelectList = document.getElementById('levelSelectList');
 
-// Main menu
-const btnPlayQuest = document.getElementById("btnPlayQuest");
-const btnLevelSelect = document.getElementById("btnLevelSelect");
-const btnQuit = document.getElementById("btnQuit");
+const restartLevelBtn = document.getElementById('btnRestartLevel');
+const restartQuestBtn = document.getElementById('btnRestartQuest');
+const backToMenuBtn = document.getElementById('btnBackToMenu');
 
-// Quest screen
-const btnRestartLevel = document.getElementById("btnRestartLevel");
-const btnRestartQuest = document.getElementById("btnRestartQuest");
-const btnBackToMenu = document.getElementById("btnBackToMenu");
+const pauseResumeBtn = document.getElementById('pause-resume-btn');
+const pauseRestartLevelBtn = document.getElementById('pause-restart-level-btn');
+const pauseRestartQuestBtn = document.getElementById('pause-restart-quest-btn');
+const pauseMainMenuBtn = document.getElementById('pause-main-menu-btn');
 
-// Level select screen
-const levelSelectList = document.getElementById("levelSelectList");
-const btnLevelSelectBack = document.getElementById("btnLevelSelectBack");
+const levelNextBtn = document.getElementById('level-next-btn');
+const levelRestartQuestBtn = document.getElementById('level-restart-quest-btn');
+const levelMainMenuBtn = document.getElementById('level-main-menu-btn');
 
-// ----- Hook up Main Menu -----
+const gameoverRestartQuestBtn = document.getElementById('gameover-restart-quest-btn');
+const gameoverMainMenuBtn = document.getElementById('gameover-main-menu-btn');
 
-btnPlayQuest.addEventListener("click", () => {
-  startQuest(state);
-  showQuestScreen();
-});
+const questcompleteRestartQuestBtn = document.getElementById('questcomplete-restart-quest-btn');
+const questcompleteMainMenuBtn = document.getElementById('questcomplete-main-menu-btn');
 
-btnLevelSelect.addEventListener("click", () => {
-  buildLevelSelectList();
-  showLevelSelectScreen();
-});
-
-btnQuit.addEventListener("click", () => {
-  showMainMenu();
-});
-
-// ----- Hook up Quest sidebar -----
-
-btnRestartLevel.addEventListener("click", () => {
-  if (state.mode === "quest") {
-    restartCurrentLevel(state);
-  }
-});
-
-btnRestartQuest.addEventListener("click", () => {
-  if (state.mode === "quest") {
-    restartQuest(state);
-  }
-});
-
-btnBackToMenu.addEventListener("click", () => {
-  showMainMenu();
-  state.mode = "menu";
-});
-
-// ----- Hook up Level Select -----
-
-btnLevelSelectBack.addEventListener("click", () => {
-  showMainMenu();
-});
-
-// Build level buttons dynamically from QUEST_LEVELS
+// ===== Level Select Builder =====
 function buildLevelSelectList() {
-  // Clear existing
-  levelSelectList.innerHTML = "";
+  if (!levelSelectList) return;
+
+  levelSelectList.innerHTML = '';
 
   QUEST_LEVELS.forEach((level, index) => {
-    const btn = document.createElement("button");
-    btn.className = "menu-btn";
-    btn.textContent = `Level ${index + 1}: ${level.name ?? level.id}`;
-    btn.addEventListener("click", () => {
+    const btn = document.createElement('button');
+    btn.className = 'menu-btn';
+    btn.textContent = `${index + 1}. ${level.name ?? level.id ?? 'Level ' + (index + 1)}`;
+    btn.addEventListener('click', () => {
+      // Start quest at this level and switch to quest screen
       startQuestAtLevel(state, index);
       showQuestScreen();
     });
@@ -98,43 +74,229 @@ function buildLevelSelectList() {
   });
 }
 
-// ----- Input -----
+// Build level list once at boot
+buildLevelSelectList();
 
-function handleKeyDown(e) {
-  state.keysDown[e.key] = true;
+// ===== Navigation / Click Handlers =====
 
-  // Dash on Space (only in quest mode)
-  if (e.key === " " && state.mode === "quest") {
-    tryDash(state);
+// Main menu → Start Quest
+if (playQuestBtn) {
+  playQuestBtn.addEventListener('click', () => {
+    startQuest(state);
+    showQuestScreen();
+  });
+}
+
+// Main menu → Level Select
+if (openLevelSelectBtn) {
+  openLevelSelectBtn.addEventListener('click', () => {
+    showLevelSelectScreen();
+  });
+}
+
+// Level Select → Back to menu
+if (levelSelectBackBtn) {
+  levelSelectBackBtn.addEventListener('click', () => {
+    showMainMenu();
+    state.mode = 'menu';
+    state.isPaused = false;
+    hideAllOverlays();
+  });
+}
+
+// Quest sidebar buttons
+if (restartLevelBtn) {
+  restartLevelBtn.addEventListener('click', () => {
+    restartCurrentLevel(state);
+    showQuestScreen();
+    hideAllOverlays();
+  });
+}
+
+if (restartQuestBtn) {
+  restartQuestBtn.addEventListener('click', () => {
+    restartQuest(state);
+    showQuestScreen();
+    hideAllOverlays();
+  });
+}
+
+if (backToMenuBtn) {
+  backToMenuBtn.addEventListener('click', () => {
+    showMainMenu();
+    state.mode = 'menu';
+    state.isPaused = false;
+    hideAllOverlays();
+  });
+}
+
+// Pause menu buttons
+if (pauseResumeBtn) {
+  pauseResumeBtn.addEventListener('click', () => {
+    state.isPaused = false;
+    hidePauseOverlay();
+  });
+}
+
+if (pauseRestartLevelBtn) {
+  pauseRestartLevelBtn.addEventListener('click', () => {
+    restartCurrentLevel(state);
+    hideAllOverlays();
+  });
+}
+
+if (pauseRestartQuestBtn) {
+  pauseRestartQuestBtn.addEventListener('click', () => {
+    restartQuest(state);
+    hideAllOverlays();
+  });
+}
+
+if (pauseMainMenuBtn) {
+  pauseMainMenuBtn.addEventListener('click', () => {
+    showMainMenu();
+    state.mode = 'menu';
+    state.isPaused = false;
+    hideAllOverlays();
+  });
+}
+
+// Level complete buttons
+if (levelNextBtn) {
+  levelNextBtn.addEventListener('click', () => {
+    advanceQuestLevel(state);
+    hideAllOverlays();
+  });
+}
+
+if (levelRestartQuestBtn) {
+  levelRestartQuestBtn.addEventListener('click', () => {
+    restartQuest(state);
+    hideAllOverlays();
+  });
+}
+
+if (levelMainMenuBtn) {
+  levelMainMenuBtn.addEventListener('click', () => {
+    showMainMenu();
+    state.mode = 'menu';
+    hideAllOverlays();
+  });
+}
+
+// Game over buttons
+if (gameoverRestartQuestBtn) {
+  gameoverRestartQuestBtn.addEventListener('click', () => {
+    restartQuest(state);
+    hideAllOverlays();
+  });
+}
+
+if (gameoverMainMenuBtn) {
+  gameoverMainMenuBtn.addEventListener('click', () => {
+    showMainMenu();
+    state.mode = 'menu';
+    hideAllOverlays();
+  });
+}
+
+// Quest complete buttons
+if (questcompleteRestartQuestBtn) {
+  questcompleteRestartQuestBtn.addEventListener('click', () => {
+    restartQuest(state);
+    hideAllOverlays();
+  });
+}
+
+if (questcompleteMainMenuBtn) {
+  questcompleteMainMenuBtn.addEventListener('click', () => {
+    showMainMenu();
+    state.mode = 'menu';
+    hideAllOverlays();
+  });
+}
+
+// ===== Keyboard: Movement + Pause + Dash-ready =====
+window.addEventListener('keydown', (e) => {
+  // Prevent arrow keys / space from scrolling the page
+  const movementKeys = [
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+    'w', 'a', 's', 'd', 'W', 'A', 'S', 'D',
+    ' ', 'Spacebar'
+  ];
+
+  if (movementKeys.includes(e.key)) {
+    e.preventDefault();
   }
-}
 
-function handleKeyUp(e) {
-  state.keysDown[e.key] = false;
-}
+  // Movement input (only matters during quest gameplay)
+  if (state.mode === 'quest' && state.quest && state.quest.status === 'playing') {
+    state.keysDown[e.key] = true;
 
-window.addEventListener("keydown", handleKeyDown);
-window.addEventListener("keyup", handleKeyUp);
+    // If your dash system listens to keysDown[' '] or keysDown['Space'],
+    // it will now see spacebar presses properly.
+    // If later we want a direct dash trigger, we can add it here.
+  }
 
-// ----- Main Loop -----
+  // Pause toggle
+  if (e.key === 'Escape') {
+    if (state.mode === 'quest' && state.quest && state.quest.status === 'playing') {
+      state.isPaused = !state.isPaused;
+      if (state.isPaused) {
+        showPauseOverlay();
+      } else {
+        hidePauseOverlay();
+      }
+    }
+  }
+});
 
-function loop(timestamp) {
-  if (!state.lastTime) state.lastTime = timestamp;
-  const dt = (timestamp - state.lastTime) / 1000; // seconds
-  state.lastTime = timestamp;
+window.addEventListener('keyup', (e) => {
+  if (state.keysDown && state.keysDown[e.key]) {
+    state.keysDown[e.key] = false;
+  }
+});
 
-  if (state.mode === "quest") {
-    updateGame(state, dt);
-    drawGame(state, ctx);
+// ===== Game Loop =====
+let lastTime = 0;
+let lastQuestStatus = null;
+
+function gameLoop(timestamp) {
+  const delta = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  if (state.mode === 'quest' && ctx) {
+    updateGame(state, delta);
+    renderGame(ctx, state);
     updateHUDDom(state);
-  } else {
-    // In menu/level select, we don't update game world.
-    // Optionally clear canvas or leave last frame.
+    handleQuestStatusForUI(state);
   }
 
-  requestAnimationFrame(loop);
+  requestAnimationFrame(gameLoop);
 }
 
-// Start in main menu
+function handleQuestStatusForUI(state) {
+  if (!state.quest) return;
+
+  const status = state.quest.status;
+
+  if (status === lastQuestStatus) return;
+  lastQuestStatus = status;
+
+  if (status === 'levelComplete') {
+    state.isPaused = true;
+    showLevelCompleteOverlay();
+  } else if (status === 'gameOver') {
+    state.isPaused = true;
+    showGameOverOverlay();
+  } else if (status === 'questComplete') {
+    state.isPaused = true;
+    showQuestCompleteOverlay();
+  } else if (status === 'playing') {
+    hideAllOverlays();
+  }
+}
+
+// ===== Boot =====
 showMainMenu();
-requestAnimationFrame(loop);
+requestAnimationFrame(gameLoop);

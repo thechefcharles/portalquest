@@ -6,7 +6,7 @@ import { updateEnemies, handlePlayerEnemyCollisions } from "./systems/enemySyste
 import { updatePowerups } from "./systems/powerupSystem.js";
 import { updateTraps } from "./systems/trapSystem.js";
 import { updateLogic } from "./systems/logicSystem.js";
-import { advanceQuestLevel } from "../modes/questMode.js";
+// import { advanceQuestLevel } from "../modes/questMode.js"; // REMOVED: now done via UI button
 
 function distance(x1, y1, x2, y2) {
   const dx = x2 - x1;
@@ -16,7 +16,16 @@ function distance(x1, y1, x2, y2) {
 
 // Entry point: called once per frame
 export function updateGame(state, dt) {
-  if (state.gameOver || state.gameWon) return;
+  // UPDATED: handle quest vs non-quest modes properly
+
+  if (state.mode === "quest") {
+    // In quest mode, only update while actively playing
+    if (state.isPaused) return; // NEW
+    if (!state.quest || state.quest.status !== "playing") return; // NEW
+  } else {
+    // Non-quest modes can still use gameOver/gameWon if you want
+    if (state.gameOver || state.gameWon) return;
+  }
 
   updatePlayerMovementAndWalls(state, dt);
   updateEnemies(state, dt);
@@ -24,7 +33,7 @@ export function updateGame(state, dt) {
   updateTraps(state, dt);
   updateLogic(state, dt);
   handlePlayerEnemyCollisions(state, dt);
-  checkPortal(state);
+  checkPortal(state); // UPDATED behavior below
 }
 
 function rectsOverlap(a, b) {
@@ -152,20 +161,25 @@ function updatePlayerMovementAndWalls(state, dt) {
 // ------- Portal win check -------
 
 function checkPortal(state) {
-  if (state.gameOver || state.gameWon) return;
+  const portal = state.portal;
+  if (!portal) return; // NEW: guard if level forgot to define a portal
 
   const player = state.player;
   const px = player.x + player.w / 2;
   const py = player.y + player.h / 2;
-  const portal = state.portal;
 
   const distToPortal = distance(px, py, portal.x, portal.y);
 
   if (distToPortal < portal.r) {
     if (state.mode === "quest") {
-      advanceQuestLevel(state);
+      // UPDATED: don’t immediately advance level
+      // Just flag LEVEL COMPLETE and let UI handle Next Level
+      if (state.quest && state.quest.status === "playing") {
+        state.quest.status = "levelComplete"; // NEW
+        state.isPaused = true;                // NEW (optional, to freeze gameplay)
+      }
     } else {
-      // non-quest modes can just mark gameWon directly
+      // Non-quest modes can just mark gameWon directly
       state.gameWon = true;
     }
   }

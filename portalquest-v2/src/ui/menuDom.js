@@ -1,24 +1,74 @@
 // src/ui/menuDom.js
-// DOM helpers for showing/hiding main menu, quest screen, level select
 
-const homeScreen = document.getElementById("homeScreen");
-const questScreen = document.getElementById("questScreen");
+// Screens — match HTML IDs
+const mainMenu = document.getElementById("homeScreen");
 const levelSelectScreen = document.getElementById("levelSelectScreen");
+const questScreen = document.getElementById("questScreen");
 
-export function showMainMenu() {
-  homeScreen.style.display = "flex";
-  questScreen.style.display = "none";
-  levelSelectScreen.style.display = "none";
+// Overlays (may not exist yet, so we guard before using them)
+const pauseOverlay = document.getElementById("pause-overlay");
+const levelCompleteOverlay = document.getElementById("level-complete-overlay");
+const gameOverOverlay = document.getElementById("game-over-overlay");
+const questCompleteOverlay = document.getElementById("quest-complete-overlay");
+
+function hideElement(el) {
+  if (!el) return;
+  el.classList.add("hidden");
 }
 
-export function showQuestScreen() {
-  homeScreen.style.display = "none";
-  questScreen.style.display = "grid";
-  levelSelectScreen.style.display = "none";
+function showElement(el) {
+  if (!el) return;
+  el.classList.remove("hidden");
+}
+
+function hideAllScreens() {
+  hideElement(mainMenu);
+  hideElement(levelSelectScreen);
+  hideElement(questScreen);
+}
+
+export function showMainMenu() {
+  hideAllScreens();
+  showElement(mainMenu);
+  hideAllOverlays();
 }
 
 export function showLevelSelectScreen() {
-  homeScreen.style.display = "none";
-  questScreen.style.display = "none";
-  levelSelectScreen.style.display = "flex";
+  hideAllScreens();
+  showElement(levelSelectScreen);
+  hideAllOverlays();
+}
+
+export function showQuestScreen() {
+  hideAllScreens();
+  showElement(questScreen);
+  hideAllOverlays();
+}
+
+// ===== Overlays =====
+export function hideAllOverlays() {
+  hideElement(pauseOverlay);
+  hideElement(levelCompleteOverlay);
+  hideElement(gameOverOverlay);
+  hideElement(questCompleteOverlay);
+}
+
+export function showPauseOverlay() {
+  showElement(pauseOverlay);
+}
+
+export function hidePauseOverlay() {
+  hideElement(pauseOverlay);
+}
+
+export function showLevelCompleteOverlay() {
+  showElement(levelCompleteOverlay);
+}
+
+export function showGameOverOverlay() {
+  showElement(gameOverOverlay);
+}
+
+export function showQuestCompleteOverlay() {
+  showElement(questCompleteOverlay);
 }
