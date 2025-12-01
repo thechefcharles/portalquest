@@ -9,6 +9,7 @@ import {
   PLAYER_BASE_SPEED,
 } from "./config.js";
 import { QUEST_LEVELS } from "../data/questLevels.js";
+import { assertLevelValid } from "./levelValidator.js";
 
 // Create a fresh GameState and load level 0
 export function createGameState() {
@@ -95,6 +96,10 @@ export function loadLevelIntoState(state, levelIndex) {
     state.gameWon = true;
     return;
   }
+
+  // 🔍 Validate for overlaps in dev
+  assertLevelValid(level, `Quest level ${levelIndex} (${level.id})`);
+
 
   state.currentLevelIndex = levelIndex;
   state.currentLevelId = level.id;
