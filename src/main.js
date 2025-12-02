@@ -60,6 +60,13 @@ import {
   deleteLevelById,    // NEW
 } from './core/levelStorage.js';
 
+import {
+  loadAllPortals,
+  upsertPortal,
+  loadPortalById,
+  deletePortalById,
+} from './core/portalStorage.js';
+
 // ===== Canvas Setup =====
 const canvas = document.getElementById('game');
 const ctx = canvas ? canvas.getContext('2d') : null;
@@ -81,6 +88,9 @@ const creatorNewBtn = document.getElementById('btnCreatorNew');
 const creatorPlaytestBtn = document.getElementById('btnCreatorPlaytest'); // not used yet
 const creatorDeleteBtn = document.getElementById('btnCreatorDelete');
 const endTestBtn = document.getElementById('btnEndTest');
+
+const myPortalsList = document.getElementById('myPortalsList');     // NEW
+const createPortalBtn = document.getElementById('btnCreatePortal'); // NEW
 
 const myLevelsBtn = document.getElementById('btnMyLevels');       // NEW
 const myLevelsBackBtn = document.getElementById('btnMyLevelsBack'); // NEW
@@ -269,6 +279,63 @@ playBtn.addEventListener('click', () => {
   });
 }
 
+function renderMyPortalsList() {
+  if (!myPortalsList) return;
+
+  const portals = loadAllPortals();
+
+  if (!portals.length) {
+    myPortalsList.innerHTML = `
+      <div style="font-size:13px; opacity:0.8;">
+        No portals yet. Create one from your saved levels.
+      </div>
+    `;
+    return;
+  }
+
+  myPortalsList.innerHTML = '';
+
+  portals.forEach((portal) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.gap = '8px';
+
+    const label = document.createElement('div');
+    label.textContent = portal.name || 'Untitled Portal';
+    label.style.fontSize = '14px';
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.gap = '6px';
+
+    const playBtn = document.createElement('button');
+    playBtn.className = 'menu-btn';
+    playBtn.style.padding = '4px 10px';
+    playBtn.textContent = 'Play';
+    playBtn.addEventListener('click', () => {
+      playPortalFromMyLevels(portal.id);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'menu-btn';
+    deleteBtn.style.padding = '4px 10px';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => {
+      if (!confirm('Delete this portal?')) return;
+      deletePortalById(portal.id);
+      renderMyPortalsList();
+    });
+
+    actions.appendChild(playBtn);
+    actions.appendChild(deleteBtn);
+    row.appendChild(label);
+    row.appendChild(actions);
+    myPortalsList.appendChild(row);
+  });
+}
+
 function openLevelFromMyLevels(levelId) {
   const saved = loadLevelById(levelId);
   if (!saved) return;
@@ -308,6 +375,43 @@ function openLevelFromMyLevels(levelId) {
     myLevelsScreen.classList.add('hidden');
   }
   showCreatorScreen();
+}
+
+function playPortalFromMyLevels(portalId) {
+  const portal = loadPortalById(portalId);
+  if (!portal || !portal.levelIds.length) return;
+
+  const firstId = portal.levelIds[0];
+  const firstLevel = loadLevelById(firstId);
+  if (!firstLevel || !firstLevel.data) return;
+
+  // Mark this as a custom portal run
+  state.portalRun = {
+    type: "custom",
+    portalId: portal.id,
+    name: portal.name,
+    levelIds: portal.levelIds.slice(), // copy
+    indexInPortal: 0,
+  };
+
+  state.customTest = false;          // treat like normal quest, not test
+  state.customLevelName = null;      // HUD can show numeric or we can enhance later
+  state.mode = "quest";
+  state.isPaused = false;
+
+  if (!state.quest) {
+    state.quest = {};
+  }
+  state.quest.status = "playing";
+  state.quest.lives = 3;
+
+  loadLevelDataIntoState(state, firstLevel.data);
+
+  const myLevelsScreen = document.getElementById('myLevelsScreen');
+  if (myLevelsScreen) myLevelsScreen.classList.add('hidden');
+
+  hideAllOverlays();
+  showQuestScreen();
 }
 
 function playLevelFromMyLevels(levelId) {
@@ -431,6 +535,7 @@ if (creatorBtn) {
 if (myLevelsBtn) {
   myLevelsBtn.addEventListener('click', () => {
     renderMyLevelsList();
+    renderMyPortalsList();   // NEW
 
     const homeScreen   = document.getElementById('homeScreen');
     const questScreen  = document.getElementById('questScreen');
@@ -562,6 +667,24 @@ if (creatorPlaytestBtn) {
   });
 }
 
+if (createPortalBtn) {
+  createPortalBtn.addEventListener('click', () => {
+    const levels = loadAllLevels();
+    if (!levels.length) {
+      alert('You need at least one saved level to create a portal.');
+      return;
+    }
+
+    const name = window.prompt('Name this portal:', 'My Portal');
+    if (name == null) return; // user cancelled
+
+    const levelIds = levels.map((lvl) => lvl.id);
+    upsertPortal({ id: null, name, levelIds });
+
+    renderMyPortalsList();
+  });
+}
+
 
 // Level Select → Back to menu
 if (levelSelectBackBtn) {
@@ -590,10 +713,24 @@ if (restartQuestBtn) {
   });
 }
 
+// Play Quest button
+if (playQuestBtn) {
+  playQuestBtn.addEventListener('click', () => {
+    state.customTest = false;
+    state.customLevelName = null;
+    state.portalRun = null;           // NEW
+    showEndTestButton(false);
+    startQuest(state);
+    showQuestScreen();
+  });
+}
+
+// Back to Main Menu button (quest sidebar)
 if (backToMenuBtn) {
   backToMenuBtn.addEventListener('click', () => {
     state.customTest = false;
-      state.customLevelName = null;
+    state.customLevelName = null;
+    state.portalRun = null;           // NEW
     showEndTestButton(false);
 
     showMainMenu();
@@ -654,6 +791,34 @@ if (pauseMainMenuBtn) {
 // Level complete buttons
 if (levelNextBtn) {
   levelNextBtn.addEventListener('click', () => {
+    // If we’re in a custom portal run
+    if (state.portalRun && state.portalRun.type === "custom") {
+      const run = state.portalRun;
+      const nextIdx = (run.indexInPortal ?? 0) + 1;
+
+      if (nextIdx < run.levelIds.length) {
+        run.indexInPortal = nextIdx;
+        const nextId = run.levelIds[nextIdx];
+        const nextLevel = loadLevelById(nextId);
+
+        if (nextLevel?.data) {
+          loadLevelDataIntoState(state, nextLevel.data);
+          state.quest.status = "playing";
+          state.isPaused = false;
+          hideAllOverlays();
+        }
+      } else {
+        // End of portal → treat as quest/portal complete
+        state.quest.status = "questComplete";
+        state.isPaused = true;
+        hideAllOverlays();
+        showQuestCompleteOverlay();
+      }
+
+      return;
+    }
+
+    // Otherwise, fall back to normal built-in quest behavior
     advanceQuestLevel(state);
     hideAllOverlays();
   });
