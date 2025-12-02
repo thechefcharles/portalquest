@@ -641,6 +641,86 @@
         style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
       />
     </div>
+
+        <!-- Orientation row (walls / doors) -->
+    <div
+      id="rect-orientation-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Orientation:</span>
+      <select
+        id="rect-orientation-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="horizontal">Horizontal</option>
+        <option value="vertical">Vertical</option>
+      </select>
+    </div>
+
+    <!-- Length row (walls / doors), in tiles -->
+    <div
+      id="rect-length-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Length (tiles):</span>
+      <input
+        id="rect-length-input"
+        type="number"
+        min="1"
+        max="20"
+        value="1"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+    
+        <!-- Enemy type row -->
+    <div
+      id="enemy-type-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Enemy Type:</span>
+      <select
+        id="enemy-type-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="patrol">Patrol</option>
+        <option value="chaser">Chaser</option>
+        <option value="spinner">Spinner</option>
+      </select>
+    </div>
+
+    <!-- Patrol axis row -->
+    <div
+      id="enemy-axis-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Patrol Axis:</span>
+      <select
+        id="enemy-axis-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="horizontal">Horizontal</option>
+        <option value="vertical">Vertical</option>
+      </select>
+    </div>
+
+    <!-- Patrol direction row -->
+    <div
+      id="enemy-dir-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Direction:</span>
+      <select
+        id="enemy-dir-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <!-- Options depend on axis; JS will update them -->
+        <option value="right">Right</option>
+        <option value="left">Left</option>
+      </select>
+    </div>
+  </div> <!-- end of selected-entity-panel -->
+
   </div>
 
   <!-- Save button -->

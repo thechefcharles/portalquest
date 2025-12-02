@@ -170,6 +170,18 @@ const doorTypeSelect = document.getElementById('door-type-select');
 const doorIdRow = document.getElementById('door-id-row');
 const doorIdInput = document.getElementById('door-id-input');
 
+const enemyTypeRow = document.getElementById('enemy-type-row');           // NEW
+const enemyTypeSelect = document.getElementById('enemy-type-select');     // NEW
+const enemyAxisRow = document.getElementById('enemy-axis-row');           // NEW
+const enemyAxisSelect = document.getElementById('enemy-axis-select');     // NEW
+const enemyDirRow = document.getElementById('enemy-dir-row');             // NEW
+const enemyDirSelect = document.getElementById('enemy-dir-select');       // NEW
+
+const rectOrientationRow = document.getElementById('rect-orientation-row');   // NEW
+const rectOrientationSelect = document.getElementById('rect-orientation-select'); // NEW
+const rectLengthRow = document.getElementById('rect-length-row');             // NEW
+const rectLengthInput = document.getElementById('rect-length-input');         // NEW
+
 // Draft portal state for the editor overlay
 let portalEditorDraft = {
   id: null,
@@ -740,6 +752,11 @@ function updateSelectedEntityPanel() {
   let showPowerup = false;
   let showDoor = false;
   let showDoorId = false;
+  let showEnemy = false;
+  let showEnemyAxis = false;
+  let showEnemyDir = false;
+  let showRectOrientation = false; // NEW
+  let showRectLength = false;      // NEW
 
   if (sel.kind === 'trap') {
     label = 'Trap';
@@ -768,6 +785,8 @@ function updateSelectedEntityPanel() {
   } else if (sel.kind === 'door') {
     label = 'Door';
     showDoor = true;
+    showRectOrientation = true;
+    showRectLength = true;
 
     const doors = level.doors || [];
     const d = doors[sel.index];
@@ -784,6 +803,62 @@ function updateSelectedEntityPanel() {
       }
     }
 
+    // Orientation + length for door
+    if (d && rectOrientationSelect && rectLengthInput) {
+      const horizontal = d.w >= d.h;
+      rectOrientationSelect.value = horizontal ? 'horizontal' : 'vertical';
+
+      const tileSize = GRID_SIZE;
+      const tiles = horizontal ? Math.round(d.w / tileSize) : Math.round(d.h / tileSize);
+      rectLengthInput.value = tiles > 0 ? tiles : 1;
+    }
+
+  } else if (sel.kind === 'enemy') {
+    label = 'Enemy';
+    showEnemy = true;
+
+    const enemies = level.enemies || [];
+    const e = enemies[sel.index];
+    if (e && enemyTypeSelect) {
+      const validTypes = ['patrol', 'chaser', 'spinner'];
+      const type = validTypes.includes(e.type) ? e.type : 'patrol';
+      enemyTypeSelect.value = type;
+
+      if (type === 'patrol') {
+        showEnemyAxis = true;
+        showEnemyDir = true;
+
+        const axis = e.axis === 'vertical' ? 'vertical' : 'horizontal';
+        if (enemyAxisSelect) {
+          enemyAxisSelect.value = axis;
+        }
+
+        // Determine direction from vx sign and axis
+        let dir = 'right';
+        const vx = e.vx ?? 1.5;
+        if (axis === 'horizontal') {
+          dir = vx >= 0 ? 'right' : 'left';
+          if (enemyDirSelect) {
+            enemyDirSelect.innerHTML = `
+              <option value="right">Right</option>
+              <option value="left">Left</option>
+            `;
+          }
+        } else {
+          dir = vx >= 0 ? 'down' : 'up';
+          if (enemyDirSelect) {
+            enemyDirSelect.innerHTML = `
+              <option value="down">Down</option>
+              <option value="up">Up</option>
+            `;
+          }
+        }
+        if (enemyDirSelect) {
+          enemyDirSelect.value = dir;
+        }
+      }
+    }
+
   } else if (sel.kind === 'spawn') {
     label = 'Player Spawn';
 
@@ -792,6 +867,19 @@ function updateSelectedEntityPanel() {
 
   } else if (sel.kind === 'obstacle') {
     label = 'Wall';
+    showRectOrientation = true;
+    showRectLength = true;
+
+    const obstacles = level.obstacles || [];
+    const o = obstacles[sel.index];
+    if (o && rectOrientationSelect && rectLengthInput) {
+      const horizontal = o.w >= o.h;
+      rectOrientationSelect.value = horizontal ? 'horizontal' : 'vertical';
+
+      const tileSize = GRID_SIZE;
+      const tiles = horizontal ? Math.round(o.w / tileSize) : Math.round(o.h / tileSize);
+      rectLengthInput.value = tiles > 0 ? tiles : 1;
+    }
 
   } else {
     label = sel.kind;
@@ -813,9 +901,22 @@ function updateSelectedEntityPanel() {
   if (doorIdRow) {
     doorIdRow.style.display = showDoorId ? 'flex' : 'none';
   }
+  if (enemyTypeRow) {
+    enemyTypeRow.style.display = showEnemy ? 'flex' : 'none';
+  }
+  if (enemyAxisRow) {
+    enemyAxisRow.style.display = showEnemyAxis ? 'flex' : 'none';
+  }
+  if (enemyDirRow) {
+    enemyDirRow.style.display = showEnemyDir ? 'flex' : 'none';
+  }
+  if (rectOrientationRow) {
+    rectOrientationRow.style.display = showRectOrientation ? 'flex' : 'none';
+  }
+  if (rectLengthRow) {
+    rectLengthRow.style.display = showRectLength ? 'flex' : 'none';
+  }
 }
-
-
 function showEndTestButton(show) {
   if (!endTestBtn) return;
   endTestBtn.classList.toggle('hidden', !show);
@@ -1042,6 +1143,8 @@ if (doorTypeSelect) {
   });
 }
 
+
+
 if (doorIdInput) {
   doorIdInput.addEventListener('input', (e) => {
     const sel = editorState.selectedEntity;
@@ -1052,6 +1155,225 @@ if (doorIdInput) {
     if (!d) return;
 
     d.doorId = e.target.value.trim();
+    updateCreatorStatusFromLevel();
+  });
+}
+
+// ===== Rect orientation + length (walls / doors) =====
+if (rectOrientationSelect) {
+  rectOrientationSelect.addEventListener('change', (e) => {
+    const sel = editorState.selectedEntity;
+    const level = editorState.currentLevel;
+    if (!sel || !level) return;
+
+    const isObstacle = sel.kind === 'obstacle';
+    const isDoor = sel.kind === 'door';
+    if (!isObstacle && !isDoor) return;
+
+    const tileSize = GRID_SIZE;
+    const orientation = e.target.value === 'vertical' ? 'vertical' : 'horizontal';
+
+    if (isObstacle) {
+      const obstacles = level.obstacles || [];
+      const o = obstacles[sel.index];
+      if (!o) return;
+
+      const tiles = Math.max(1, parseInt(rectLengthInput?.value || '1', 10) || 1);
+
+      if (orientation === 'horizontal') {
+        o.w = tiles * tileSize;
+        o.h = tileSize;
+      } else {
+        o.w = tileSize;
+        o.h = tiles * tileSize;
+      }
+    } else if (isDoor) {
+      const doors = level.doors || [];
+      const d = doors[sel.index];
+      if (!d) return;
+
+      const tiles = Math.max(1, parseInt(rectLengthInput?.value || '1', 10) || 1);
+
+      if (orientation === 'horizontal') {
+        d.w = tiles * tileSize;
+        d.h = tileSize;
+      } else {
+        d.w = tileSize;
+        d.h = tiles * tileSize;
+      }
+    }
+
+    updateCreatorStatusFromLevel();
+    updateSelectedEntityPanel();
+  });
+}
+
+if (rectLengthInput) {
+  rectLengthInput.addEventListener('change', (e) => {
+    const sel = editorState.selectedEntity;
+    const level = editorState.currentLevel;
+    if (!sel || !level) return;
+
+    const isObstacle = sel.kind === 'obstacle';
+    const isDoor = sel.kind === 'door';
+    if (!isObstacle && !isDoor) return;
+
+    const tileSize = GRID_SIZE;
+    let tiles = parseInt(e.target.value || '1', 10);
+    if (!Number.isFinite(tiles) || tiles < 1) tiles = 1;
+
+    if (isObstacle) {
+      const obstacles = level.obstacles || [];
+      const o = obstacles[sel.index];
+      if (!o) return;
+
+      const horizontal = o.w >= o.h;
+      if (horizontal) {
+        o.w = tiles * tileSize;
+        o.h = tileSize;
+      } else {
+        o.w = tileSize;
+        o.h = tiles * tileSize;
+      }
+    } else if (isDoor) {
+      const doors = level.doors || [];
+      const d = doors[sel.index];
+      if (!d) return;
+
+      const horizontal = d.w >= d.h;
+      if (horizontal) {
+        d.w = tiles * tileSize;
+        d.h = tileSize;
+      } else {
+        d.w = tileSize;
+        d.h = tiles * tileSize;
+      }
+    }
+
+    updateCreatorStatusFromLevel();
+    updateSelectedEntityPanel();
+  });
+}
+
+if (enemyTypeSelect) {
+  enemyTypeSelect.addEventListener('change', (e) => {
+    const level = editorState.currentLevel;
+    const sel = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'enemy') return;
+
+    const enemies = level.enemies || [];
+    const idx = sel.index;
+    const current = enemies[idx];
+    if (!current) return;
+
+    const newType = e.target.value;
+
+    // Get center & size
+    const cx = current.x + current.w / 2;
+    const cy = current.y + current.h / 2;
+    const w = current.w || GRID_SIZE * 0.8;
+    const h = current.h || GRID_SIZE * 0.8;
+
+    if (newType === 'patrol') {
+      enemies[idx] = {
+        type: 'patrol',
+        x: cx - w / 2,
+        y: cy - h / 2,
+        w,
+        h,
+        axis: 'horizontal',
+        vx: 1.5,
+      };
+    } else if (newType === 'chaser') {
+      enemies[idx] = {
+        type: 'chaser',
+        x: cx - w / 2,
+        y: cy - h / 2,
+        w,
+        h,
+        speed: 1.2,
+      };
+    } else if (newType === 'spinner') {
+      const radius = GRID_SIZE * 1.2;
+      enemies[idx] = {
+        type: 'spinner',
+        cx,
+        cy,
+        radius,
+        angle: 0,
+        angularSpeed: 1.8,
+        w,
+        h,
+        x: cx - w / 2,
+        y: cy - h / 2,
+      };
+    }
+
+    updateCreatorStatusFromLevel();
+    updateSelectedEntityPanel();
+  });
+}
+if (enemyAxisSelect) {
+  enemyAxisSelect.addEventListener('change', (e) => {
+    const level = editorState.currentLevel;
+    const sel = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'enemy') return;
+
+    const enemies = level.enemies || [];
+    const idx = sel.index;
+    const enemy = enemies[idx];
+    if (!enemy || enemy.type !== 'patrol') return;
+
+    const axis = e.target.value === 'vertical' ? 'vertical' : 'horizontal';
+    enemy.axis = axis;
+
+    // Adjust direction options
+    if (enemyDirSelect) {
+      if (axis === 'horizontal') {
+        enemyDirSelect.innerHTML = `
+          <option value="right">Right</option>
+          <option value="left">Left</option>
+        `;
+      } else {
+        enemyDirSelect.innerHTML = `
+          <option value="down">Down</option>
+          <option value="up">Up</option>
+        `;
+      }
+    }
+
+    // Keep vx magnitude, fix sign via direction handler
+    const vx = enemy.vx ?? 1.5;
+    enemy.vx = vx >= 0 ? 1.5 : -1.5;
+
+    updateCreatorStatusFromLevel();
+    updateSelectedEntityPanel();
+  });
+}
+
+if (enemyDirSelect) {
+  enemyDirSelect.addEventListener('change', (e) => {
+    const level = editorState.currentLevel;
+    const sel = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'enemy') return;
+
+    const enemies = level.enemies || [];
+    const idx = sel.index;
+    const enemy = enemies[idx];
+    if (!enemy || enemy.type !== 'patrol') return;
+
+    const axis = enemy.axis === 'vertical' ? 'vertical' : 'horizontal';
+    const dir = e.target.value;
+
+    const speedMag = Math.abs(enemy.vx ?? 1.5) || 1.5;
+
+    if (axis === 'horizontal') {
+      enemy.vx = (dir === 'left') ? -speedMag : speedMag;
+    } else {
+      // For vertical patrols, we still use vx as the "step" value (enemySystem uses e.vx along y)
+      enemy.vx = (dir === 'up') ? -speedMag : speedMag;
+    }
+
     updateCreatorStatusFromLevel();
   });
 }
