@@ -1,7 +1,8 @@
 // src/renderer/renderGame.js
 // Draw the current GameState to the canvas
 
-import { COLORS } from "../core/config.js";
+import { GRID_SIZE, COLORS } from "../core/config.js";
+
 
 // NOTE: ctx FIRST, state SECOND — matches main.js
 export function renderGame(ctx, state) {
@@ -30,21 +31,21 @@ export function renderGame(ctx, state) {
   ctx.fillStyle = bgGradient;
   ctx.fillRect(0, 0, width, height);
 
-  // Neon grid
-  ctx.strokeStyle = COLORS.gridLine;
-  ctx.lineWidth = 1;
-  for (let y = 40; y < height; y += 40) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  }
-  for (let x = 40; x < width; x += 40) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
-  }
+// Neon grid
+ctx.strokeStyle = COLORS.gridLine;
+ctx.lineWidth = 1;
+for (let y = GRID_SIZE; y < height; y += GRID_SIZE) {
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(width, y);
+  ctx.stroke();
+}
+for (let x = GRID_SIZE; x < width; x += GRID_SIZE) {
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, height);
+  ctx.stroke();
+}
 
   // Walls
   ctx.fillStyle = COLORS.wallFill;

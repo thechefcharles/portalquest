@@ -2,9 +2,11 @@
 // Central place to track Level Creator state.
 
 export const editorState = {
-  currentLevel: null,        // will hold a LevelData object we'll modify
-  activeTool: 'select',      // 'select' | 'wall' | later: 'enemy_patrol', etc.
-  selectedEntity: null,      // { kind: string, index: number } or null
+  currentLevel: null,        // LevelData we are editing
+  activeTool: 'select',      // 'select' | 'wall' | 'spawn' | 'portal' | ...
+  selectedEntity: null,      // { kind, index } | { kind: 'spawn' } | { kind: 'portal' } | null
+  hover: null,               // { tool, gridX, gridY, isValid } or null
+  isTesting: false,          // NEW: true when in in-editor playtest
 };
 
 export function startNewLevel() {
@@ -26,11 +28,12 @@ export function startNewLevel() {
   };
   editorState.activeTool = 'select';
   editorState.selectedEntity = null;
+  editorState.hover = null;
+  editorState.isTesting = false;  // reset
 }
 
 export function setActiveTool(toolName) {
   editorState.activeTool = toolName;
-  // When switching tools, we can clear selection for now
   if (toolName !== 'select') {
     editorState.selectedEntity = null;
   }

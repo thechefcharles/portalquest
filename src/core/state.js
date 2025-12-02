@@ -15,9 +15,12 @@ import { assertLevelValid } from "./levelValidator.js";
 export function createGameState() {
   const state = {
     mode: "menu",
-    isPaused: false, // NEW: used by pause menu & quest flow
+    isPaused: false, // used by pause menu & quest flow
 
-    // NEW: quest-specific state
+    // NEW: custom test flag (for Creator playtest)
+    customTest: false,
+
+    // Quest-specific state
     quest: {
       currentLevelIndex: 0,
       lives: 3,
@@ -29,12 +32,12 @@ export function createGameState() {
     width: CANVAS_WIDTH,
     height: CANVAS_HEIGHT,
 
-    // Legacy / generic level info (fine to keep)
+    // Generic level info
     currentLevelIndex: 0,
     currentLevelId: null,
     currentLevel: null,
 
-    // Player (will be positioned by loadLevelIntoState)
+    // Player (will be positioned by loadLevel* functions)
     player: {
       x: 0,
       y: 0,
@@ -73,7 +76,7 @@ export function createGameState() {
     timeLeft: 999,
     score: 0,
 
-    // These are mostly for non-quest / generic modes now
+    // Legacy / generic flags
     lives: 3,
     gameOver: false,
     gameWon: false,
@@ -88,20 +91,8 @@ export function createGameState() {
   return state;
 }
 
-// Re-load all level-specific data from QUEST_LEVELS[index]
-export function loadLevelIntoState(state, levelIndex) {
-  const level = QUEST_LEVELS[levelIndex];
-  if (!level) {
-    console.warn("No level at index", levelIndex);
-    state.gameWon = true;
-    return;
-  }
-
-  // 🔍 Validate for overlaps in dev
-  assertLevelValid(level, `Quest level ${levelIndex} (${level.id})`);
-
-
-  state.currentLevelIndex = levelIndex;
+// INTERNAL helper: apply a LevelData object to the state
+function applyLevelToState(state, level) {
   state.currentLevelId = level.id;
   state.currentLevel = level;
 
@@ -114,7 +105,7 @@ export function loadLevelIntoState(state, levelIndex) {
   state.player.poisonTimer = 0;
   state.player.hazardInvulnTimer = 0;
   state.player.slowFactor = 1;
-  state.player.onFire = false; // reset fire status
+  state.player.onFire = false;
 
   // Portal
   state.portal.x = level.portal.x;
@@ -133,4 +124,34 @@ export function loadLevelIntoState(state, levelIndex) {
   state.hasKey = false;
   state.gameOver = false;
   state.gameWon = false;
+}
+
+// Re-load all level-specific data from QUEST_LEVELS[index]
+export function loadLevelIntoState(state, levelIndex) {
+  const level = QUEST_LEVELS[levelIndex];
+  if (!level) {
+    console.warn("No level at index", levelIndex);
+    state.gameWon = true;
+    return;
+  }
+
+  // 🔍 Validate built-in levels in dev
+  assertLevelValid(level, `Quest level ${levelIndex} (${level.id})`);
+
+  state.currentLevelIndex = levelIndex;
+  applyLevelToState(state, level);
+}
+
+// NEW: Load arbitrary LevelData (from Creator) into state
+export function loadLevelDataIntoState(state, level) {
+  if (!level) {
+    console.warn("No level data provided for custom test");
+    state.gameWon = true;
+    return;
+  }
+
+  // For custom levels, we trust the Creator's validator,
+  // so we don't hard-assert here to avoid noisy logs.
+  state.currentLevelIndex = -1;
+  applyLevelToState(state, level);
 }

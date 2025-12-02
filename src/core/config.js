@@ -16,7 +16,7 @@ export const PORTAL_RADIUS = 18;
 
 // Colors for neon aesthetic
 export const COLORS = {
-  backgroundTop: "#1c2541",
+  backgroundTop: "#1c2541",   // or whatever renderGame uses
   backgroundBottom: "#020308",
   gridLine: "rgba(80, 130, 200, 0.35)",
 

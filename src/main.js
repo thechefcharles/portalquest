@@ -1,5 +1,5 @@
 // src/main.js
-import { createGameState } from './core/state.js';
+import { createGameState, loadLevelDataIntoState } from './core/state.js';
 import { updateGame } from './engine/engine.js';
 import { renderGame } from './renderer/renderGame.js';
 import { updateHUDDom } from './ui/hudDom.js';
@@ -18,6 +18,11 @@ import {
   moveSelectedEntity,
   moveSelectedEntityToGrid,
 } from './editor/editorSelection.js';
+import {
+  canPlaceWallAtGrid,
+  canPlaceSpawnAtGrid,
+  canPlacePortalAtGrid,
+} from './editor/editorPlacementValidator.js';
 
 import { GRID_SIZE } from './core/config.js';
 import {
@@ -41,6 +46,7 @@ import {
   restartCurrentLevel,
   advanceQuestLevel,
 } from './modes/questMode.js';
+import { validateLevel } from './core/levelValidator.js';
 
 // ===== Canvas Setup =====
 const canvas = document.getElementById('game');
@@ -62,6 +68,8 @@ const creatorBackBtn = document.getElementById('btnCreatorBack');
 const creatorNewBtn = document.getElementById('btnCreatorNew');
 const creatorPlaytestBtn = document.getElementById('btnCreatorPlaytest'); // not used yet
 const creatorDeleteBtn = document.getElementById('btnCreatorDelete');
+const endTestBtn = document.getElementById('btnEndTest');
+
 
 const restartLevelBtn = document.getElementById('btnRestartLevel');
 const restartQuestBtn = document.getElementById('btnRestartQuest');
@@ -86,6 +94,18 @@ const toolSelectBtn = document.getElementById('toolSelect');
 const toolWallBtn = document.getElementById('toolWall');
 const toolSpawnBtn = document.getElementById('toolSpawn');
 const toolPortalBtn = document.getElementById('toolPortal');
+
+// ===== Creator status helper =====
+function updateCreatorStatusFromLevel() {
+  const statusEl = document.getElementById('creatorStatus');
+  if (!statusEl || !editorState.currentLevel) return;
+  const issues = validateLevel(editorState.currentLevel);
+  if (issues.length === 0) {
+    statusEl.textContent = 'Valid ✅';
+  } else {
+    statusEl.textContent = `${issues.length} issue(s) ⚠️ – ${issues[0]}`;
+  }
+}
 
 // ===== Level Select Builder =====
 function buildLevelSelectList() {
@@ -117,6 +137,22 @@ function updateDeleteButtonState() {
   creatorDeleteBtn.classList.toggle('danger-btn-disabled', !hasSelection);
 }
 
+function showEndTestButton(show) {
+  if (!endTestBtn) return;
+  endTestBtn.classList.toggle('hidden', !show);
+}
+
+function updateTestButtonLabel() {
+  if (!creatorPlaytestBtn) return;
+  if (editorState.isTesting) {
+    creatorPlaytestBtn.textContent = 'Restart';
+  } else {
+    creatorPlaytestBtn.textContent = 'Test Game';
+  }
+}
+
+
+
 // Creator tools: manage active button visual
 function setToolButtonActive(activeBtn) {
   [toolSelectBtn, toolWallBtn, toolSpawnBtn, toolPortalBtn].forEach((btn) => {
@@ -133,6 +169,8 @@ function setToolButtonActive(activeBtn) {
 // Main menu → Start Quest
 if (playQuestBtn) {
   playQuestBtn.addEventListener('click', () => {
+    state.customTest = false;
+    showEndTestButton(false);
     startQuest(state);
     showQuestScreen();
   });
@@ -141,6 +179,8 @@ if (playQuestBtn) {
 // Main menu → Level Select
 if (openLevelSelectBtn) {
   openLevelSelectBtn.addEventListener('click', () => {
+    state.customTest = false;
+    showEndTestButton(false);
     showLevelSelectScreen();
   });
 }
@@ -171,14 +211,13 @@ if (creatorNewBtn) {
     setActiveTool('select');
     if (toolSelectBtn) setToolButtonActive(toolSelectBtn);
 
-    // Clear selection and update delete button
+    // Clear selection, hover, and update UI
     editorState.selectedEntity = null;
+    editorState.hover = null;
     updateDeleteButtonState();
+    updateCreatorStatusFromLevel();
 
-    const statusEl = document.getElementById('creatorStatus');
     const nameEl = document.getElementById('creatorLevelName');
-
-    if (statusEl) statusEl.textContent = 'Empty level (ready to edit)';
     if (nameEl && editorState.currentLevel) {
       nameEl.textContent = editorState.currentLevel.name || 'Untitled Level';
     }
@@ -191,6 +230,7 @@ if (creatorDeleteBtn) {
     if (!editorState.selectedEntity) return;
     deleteSelectedEntity();
     updateDeleteButtonState();
+    updateCreatorStatusFromLevel();
   });
 }
 
@@ -199,6 +239,7 @@ if (toolSelectBtn) {
   toolSelectBtn.addEventListener('click', () => {
     setActiveTool('select');
     setToolButtonActive(toolSelectBtn);
+    editorState.hover = null;
   });
 }
 
@@ -222,6 +263,47 @@ if (toolPortalBtn) {
     setToolButtonActive(toolPortalBtn);
   });
 }
+// Creator → Test Game / Restart (in-editor)
+if (creatorPlaytestBtn) {
+  // enable button visually (it was disabled in HTML)
+  creatorPlaytestBtn.disabled = false;
+  creatorPlaytestBtn.style.opacity = '1';
+  creatorPlaytestBtn.style.cursor = 'pointer';
+
+  creatorPlaytestBtn.addEventListener('click', () => {
+    if (!editorState.currentLevel) return;
+
+    const issues = validateLevel(editorState.currentLevel);
+    if (issues.length > 0) {
+      // Show issues, don't start test
+      updateCreatorStatusFromLevel();
+      return;
+    }
+
+    // If already testing → this click means RESTART
+    state.customTest = true;
+    state.mode = 'creator';
+    state.isPaused = false;
+    state.quest.status = 'playing';
+    state.quest.lives = 3;
+
+    // Reload level into engine state (restart)
+    loadLevelDataIntoState(state, editorState.currentLevel);
+
+    editorState.isTesting = true;
+    editorState.selectedEntity = null;
+    editorState.hover = null;
+    updateDeleteButtonState();
+    showEndTestButton(true);
+    updateTestButtonLabel(); // label becomes "Restart"
+
+    const statusEl = document.getElementById('creatorStatus');
+    if (statusEl) {
+      statusEl.textContent = 'Testing level… (click End Test to return)';
+    }
+  });
+}
+
 
 // Level Select → Back to menu
 if (levelSelectBackBtn) {
@@ -252,12 +334,32 @@ if (restartQuestBtn) {
 
 if (backToMenuBtn) {
   backToMenuBtn.addEventListener('click', () => {
+    state.customTest = false;
+    showEndTestButton(false);
+
     showMainMenu();
     state.mode = 'menu';
     state.isPaused = false;
     hideAllOverlays();
   });
 }
+
+// Creator → End Test (back to edit mode)
+if (endTestBtn) {
+  endTestBtn.addEventListener('click', () => {
+    if (!state.customTest || !editorState.isTesting) return;
+
+    state.customTest = false;
+    state.isPaused = false;
+    state.quest.status = 'idle';
+    editorState.isTesting = false;
+
+    showEndTestButton(false);
+    updateTestButtonLabel();      // label back to "Test Game"
+    updateCreatorStatusFromLevel();
+  });
+}
+
 
 // Pause menu buttons
 if (pauseResumeBtn) {
@@ -347,7 +449,6 @@ if (questcompleteMainMenuBtn) {
 
 // ===== Keyboard: Movement + Pause + Dash =====
 window.addEventListener('keydown', (e) => {
-  // Prevent arrow keys / space from scrolling the page
   const movementKeys = [
     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
     'w', 'a', 's', 'd', 'W', 'A', 'S', 'D',
@@ -358,16 +459,37 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
   }
 
-  // ===== Creator keyboard controls =====
+  // ===== Creator mode =====
   if (state.mode === 'creator') {
-    // Delete selected entity
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      deleteSelectedEntity();
-      updateDeleteButtonState();
+    // TEST MODE: use quest controls
+    if (state.customTest && editorState.isTesting) {
+      state.keysDown[e.key] = true;
+
+      if (e.key === ' ' || e.code === 'Space') {
+        tryDash(state);
+      }
+
+      // Optional: ESC ends test
+      if (e.key === 'Escape') {
+        state.customTest = false;
+        state.quest.status = 'idle';
+        editorState.isTesting = false;
+        showEndTestButton(false);
+        updateTestButtonLabel();
+        updateCreatorStatusFromLevel();
+      }
+
       return;
     }
 
-    // Move selected entity by one grid cell (when in Select mode)
+    // EDIT MODE controls (only when not testing)
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      deleteSelectedEntity();
+      updateDeleteButtonState();
+      updateCreatorStatusFromLevel();
+      return;
+    }
+
     const sel = editorState.selectedEntity;
     if (sel && editorState.activeTool === 'select') {
       if (e.key === 'ArrowLeft') {
@@ -379,22 +501,21 @@ window.addEventListener('keydown', (e) => {
       } else if (e.key === 'ArrowDown') {
         moveSelectedEntity(0, GRID_SIZE);
       }
+      updateCreatorStatusFromLevel();
     }
 
-    return; // Don't let quest controls handle this key
+    return;
   }
 
-  // ===== Quest controls =====
+  // ===== Quest controls (unchanged) =====
   if (state.mode === 'quest' && state.quest && state.quest.status === 'playing') {
     state.keysDown[e.key] = true;
 
-    // 🚀 DASH on Spacebar
     if (e.key === ' ' || e.code === 'Space') {
       tryDash(state);
     }
   }
 
-  // Pause toggle
   if (e.key === 'Escape') {
     if (state.mode === 'quest' && state.quest && state.quest.status === 'playing') {
       state.isPaused = !state.isPaused;
@@ -413,11 +534,52 @@ window.addEventListener('keyup', (e) => {
   }
 });
 
-// ===== Editor Mouse Input: click to place walls / spawn / portal or select+move =====
+// ===== Editor Mouse Hover: set preview =====
+if (editorCanvas) {
+  editorCanvas.addEventListener('mousemove', (e) => {
+    if (state.mode !== 'creator') return;
+    if (!editorState.currentLevel) return;
+     if (editorState.isTesting) return; // NEW: no hover during test
+
+    const rect = editorCanvas.getBoundingClientRect();
+    const scaleX = editorCanvas.width / rect.width;
+    const scaleY = editorCanvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    const tool = editorState.activeTool;
+    if (tool === 'select') {
+      editorState.hover = null;
+      return;
+    }
+
+    const gridX = Math.floor(x / GRID_SIZE);
+    const gridY = Math.floor(y / GRID_SIZE);
+    const level = editorState.currentLevel;
+    let isValid = false;
+
+    if (tool === 'wall') {
+      isValid = canPlaceWallAtGrid(level, gridX, gridY);
+    } else if (tool === 'spawn') {
+      isValid = canPlaceSpawnAtGrid(level, gridX, gridY);
+    } else if (tool === 'portal') {
+      isValid = canPlacePortalAtGrid(level, gridX, gridY);
+    }
+
+    editorState.hover = { tool, gridX, gridY, isValid };
+  });
+
+  editorCanvas.addEventListener('mouseleave', () => {
+    editorState.hover = null;
+  });
+}
+
+// ===== Editor Mouse Input: click to place or select+move =====
 if (editorCanvas) {
   editorCanvas.addEventListener('mousedown', (e) => {
     if (state.mode !== 'creator') return;
     if (!editorState.currentLevel) return;
+     if (editorState.isTesting) return; // NEW: no editing during test
 
     const rect = editorCanvas.getBoundingClientRect();
     const scaleX = editorCanvas.width / rect.width;
@@ -427,39 +589,44 @@ if (editorCanvas) {
     const y = (e.clientY - rect.top) * scaleY;
 
     const tool = editorState.activeTool;
+    const level = editorState.currentLevel;
 
     if (tool === 'wall') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlaceWallAtGrid(level, gridX, gridY)) return;
       placeWallAtGrid(gridX, gridY);
+      updateCreatorStatusFromLevel();
     } else if (tool === 'spawn') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlaceSpawnAtGrid(level, gridX, gridY)) return;
       placeSpawnAtGrid(gridX, gridY);
+      updateCreatorStatusFromLevel();
     } else if (tool === 'portal') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlacePortalAtGrid(level, gridX, gridY)) return;
       placePortalAtGrid(gridX, gridY);
+      updateCreatorStatusFromLevel();
     } else if (tool === 'select') {
       const hit = findEntityAtPixel(x, y);
       const currentSel = editorState.selectedEntity;
 
       if (!currentSel) {
-        // First click: select entity if we hit one
         editorState.selectedEntity = hit;
         updateDeleteButtonState();
       } else {
         if (hit) {
-          // Clicked another entity: change selection
           editorState.selectedEntity = hit;
           updateDeleteButtonState();
         } else {
-          // Clicked empty grid: move selected entity here, then clear selection
           const gridX = Math.floor(x / GRID_SIZE);
           const gridY = Math.floor(y / GRID_SIZE);
           moveSelectedEntityToGrid(gridX, gridY);
           editorState.selectedEntity = null;
           updateDeleteButtonState();
+          updateCreatorStatusFromLevel();
         }
       }
     }
@@ -480,7 +647,14 @@ function gameLoop(timestamp) {
     updateHUDDom(state);
     handleQuestStatusForUI(state);
   } else if (state.mode === 'creator' && editorCtx) {
-    renderEditor(editorCtx);
+    if (state.customTest && editorState.isTesting) {
+      // In-editor test
+      updateGame(state, delta);
+      renderGame(editorCtx, state);
+    } else {
+      // Normal editor view
+      renderEditor(editorCtx);
+    }
   }
 
   requestAnimationFrame(gameLoop);

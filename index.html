@@ -334,11 +334,12 @@
             </h2>
           </div>
           <div style="display:flex; gap: 8px;">
-            <button id="btnCreatorNew" class="menu-btn" style="padding: 6px 14px;">New Level</button>
-            <button id="btnCreatorPlaytest" class="menu-btn" style="padding: 6px 14px; opacity: 0.6; cursor: default;" disabled>
-              Playtest (soon)
-            </button>
-          </div>
+<button id="btnCreatorNew" class="menu-btn" style="padding: 6px 14px;">New Level</button>
+<button id="btnCreatorPlaytest" class="menu-btn" style="padding: 6px 14px; opacity: 0.6; cursor: default;" disabled>
+  Test Game
+</button>
+
+</div>
         </div>
 
         <!-- Body layout -->
@@ -362,34 +363,49 @@
 
           <!-- Canvas area -->
           <main id="creatorCanvasContainer" style="background: radial-gradient(circle at top, #020617 0%, #020617 40%, #000 100%); border-radius: 12px; border: 1px solid rgba(56,189,248,0.4); position: relative; overflow: hidden; display:flex; align-items:center; justify-content:center;">
-            <canvas id="editorCanvas" width="800" height="600" style="max-width:100%; max-height:100%;"></canvas>
-          </main>
+<canvas
+  id="editorCanvas"
+  width="568"
+  height="390"
+  style="max-width:100%; max-height:100%;"
+></canvas>
+
+</main>
 
 
-          <!-- Properties / meta -->
-          <aside style="background: rgba(15,23,42,0.9); border-radius: 12px; padding: 12px; border: 1px solid rgba(148,163,184,0.4);">
-            <h3 style="margin-top:0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity:0.8;">
-              Level Info
-            </h3>
-            <div style="font-size: 13px; opacity: 0.9;">
-              <div><strong>Name:</strong> <span id="creatorLevelName">Untitled</span></div>
-              <div><strong>Mode:</strong> Creator</div>
-              <div><strong>Status:</strong> <span id="creatorStatus">Empty level</span></div>
-            </div>
-            <p style="font-size:11px; opacity:0.65; margin-top:12px;">
-              As we build the editor, this panel will show details for the selected entity: type, axis, speed, links,
-              etc.
-            </p>
+<!-- Properties / meta -->
+<aside style="background: rgba(15,23,42,0.9); border-radius: 12px; padding: 12px; border: 1px solid rgba(148,163,184,0.4);">
+  <h3 style="margin-top:0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity:0.8;">
+    Level Info
+  </h3>
+  <div style="font-size: 13px; opacity: 0.9;">
+    <div><strong>Name:</strong> <span id="creatorLevelName">Untitled</span></div>
+    <div><strong>Mode:</strong> Creator</div>
+    <div><strong>Status:</strong> <span id="creatorStatus">Empty level</span></div>
+  </div>
+  <p style="font-size:11px; opacity:0.65; margin-top:12px;">
+    As we build the editor, this panel will show details for the selected entity: type, axis, speed, links,
+    etc.
+  </p>
 
-            <!-- Delete Selected button -->
-            <button
-              id="btnCreatorDelete"
-              class="danger-btn danger-btn-disabled"
-              disabled
-            >
-              Delete Selected
-            </button>
-          </aside>
+  <!-- Delete Selected button -->
+  <button
+    id="btnCreatorDelete"
+    class="danger-btn danger-btn-disabled"
+    disabled
+  >
+    Delete Selected
+  </button>
+
+  <!-- End Test button (editor playtest) -->
+  <button
+    id="btnEndTest"
+    class="quest-btn hidden"
+    style="margin-top: 10px;"
+  >
+    End Test (Back to Edit Mode)
+  </button>
+</aside>
 
         </div>
       </div>
@@ -438,11 +454,12 @@
             Restart Level: R (later)<br />
           </div>
 
-          <h2>Quest</h2>
-          <button id="btnRestartLevel" class="quest-btn">Restart Level</button>
-          <button id="btnRestartQuest" class="quest-btn">Restart Quest</button>
-          <button id="btnBackToMenu" class="quest-btn">Back to Main Menu</button>
-        </aside>
+<h2>Quest</h2>
+<button id="btnRestartLevel" class="quest-btn">Restart Level</button>
+<button id="btnRestartQuest" class="quest-btn">Restart Quest</button>
+<button id="btnBackToMenu" class="quest-btn">Back to Main Menu</button>
+
+</aside>
 
         <main id="gameContainer">
           <canvas id="game" width="568" height="390"></canvas>

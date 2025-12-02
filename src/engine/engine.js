@@ -6,7 +6,8 @@ import { updateEnemies, handlePlayerEnemyCollisions } from "./systems/enemySyste
 import { updatePowerups } from "./systems/powerupSystem.js";
 import { updateTraps } from "./systems/trapSystem.js";
 import { updateLogic } from "./systems/logicSystem.js";
-// import { advanceQuestLevel } from "../modes/questMode.js"; // REMOVED: now done via UI button
+import { loadLevelDataIntoState } from "../core/state.js";
+
 
 function distance(x1, y1, x2, y2) {
   const dx = x2 - x1;
@@ -16,14 +17,14 @@ function distance(x1, y1, x2, y2) {
 
 // Entry point: called once per frame
 export function updateGame(state, dt) {
-  // UPDATED: handle quest vs non-quest modes properly
+  const inQuest = state.mode === "quest";
+  const inCreatorTest = state.mode === "creator" && state.customTest;
 
-  if (state.mode === "quest") {
-    // In quest mode, only update while actively playing
-    if (state.isPaused) return; // NEW
-    if (!state.quest || state.quest.status !== "playing") return; // NEW
+  if (inQuest || inCreatorTest) {
+    if (state.isPaused) return;
+    if (state.quest && state.quest.status !== "playing") return;
   } else {
-    // Non-quest modes can still use gameOver/gameWon if you want
+    // Non-quest, non-test modes: bail if game over/won
     if (state.gameOver || state.gameWon) return;
   }
 
@@ -33,7 +34,7 @@ export function updateGame(state, dt) {
   updateTraps(state, dt);
   updateLogic(state, dt);
   handlePlayerEnemyCollisions(state, dt);
-  checkPortal(state); // UPDATED behavior below
+  checkPortal(state);
 }
 
 function rectsOverlap(a, b) {
@@ -170,17 +171,20 @@ function checkPortal(state) {
 
   const distToPortal = distance(px, py, portal.x, portal.y);
 
-  if (distToPortal < portal.r) {
-    if (state.mode === "quest") {
-      // UPDATED: don’t immediately advance level
-      // Just flag LEVEL COMPLETE and let UI handle Next Level
-      if (state.quest && state.quest.status === "playing") {
-        state.quest.status = "levelComplete"; // NEW
-        state.isPaused = true;                // NEW (optional, to freeze gameplay)
-      }
-    } else {
-      // Non-quest modes can just mark gameWon directly
-      state.gameWon = true;
+if (distToPortal < portal.r) {
+  if (state.customTest) {
+    // In-editor test: restart the current level
+    if (state.currentLevel) {
+      loadLevelDataIntoState(state, state.currentLevel);
+      state.quest.status = 'playing';
+      state.gameOver = false;
+      state.gameWon = false;
     }
+  } else if (state.mode === "quest") {
+    // normal quest behavior (advance or questComplete)
+    // advanceQuestLevel(state);  // whatever you already had
+  } else {
+    state.gameWon = true;
   }
+}
 }
