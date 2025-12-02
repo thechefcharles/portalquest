@@ -98,6 +98,58 @@
     background: #1f2937;
   }
 
+  .tool-btn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: #020617;
+    color: #e5e7eb;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .tool-btn:hover {
+    background: #0f172a;
+  }
+
+  .tool-btn-active {
+    border-color: #38bdf8;
+    background: #0b1120;
+    box-shadow: 0 0 8px rgba(56,189,248,0.6);
+  }
+
+  /* Danger/Delete button for Creator */
+  .danger-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #4b5563;
+    background: #111827;
+    color: #e5e7eb;
+    font-size: 13px;
+    cursor: default;
+    opacity: 0.5;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+
+  .danger-btn-active {
+    border-color: #ef4444;
+    background: #7f1d1d;
+    color: #fee2e2;
+    opacity: 1;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+  }
+
+  .danger-btn-disabled {
+    opacity: 0.4;
+    cursor: default;
+    border-color: #4b5563;
+    background: #111827;
+  }
+
   /* LEVEL SELECT */
 
   #levelSelectScreen {
@@ -246,12 +298,12 @@
         <div class="menu-subtitle">
           Dodge enemies, dodge traps, unlock doors, and reach the portal.
         </div>
-        <div class="menu-buttons">
-          <button id="btnPlayQuest" class="menu-btn">Play Quest</button>
-          <button id="btnLevelSelect" class="menu-btn">Level Select</button>
-          <!-- Future: Create Levels, PvP, etc. -->
-          <button id="btnQuit" class="menu-btn">Quit</button>
-        </div>
+    <div class="menu-buttons">
+      <button id="btnPlayQuest" class="menu-btn">Play Quest</button>
+      <button id="btnLevelSelect" class="menu-btn">Level Select</button>
+      <button id="btnCreator" class="menu-btn">Level Creator</button>
+      <button id="btnQuit" class="menu-btn">Quit</button>
+    </div>
       </div>
     </div>
 
@@ -269,6 +321,80 @@
         <button id="btnLevelSelectBack" class="menu-btn">Back to Main Menu</button>
       </div>
     </div>
+
+        <!-- CREATOR SCREEN -->
+    <div id="creatorScreen" class="screen hidden">
+      <div class="menu-card" style="width: 100%; max-width: none; text-align: left;">
+        <!-- Top bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div style="display:flex; gap: 8px; align-items: center;">
+            <button id="btnCreatorBack" class="menu-btn" style="padding: 6px 14px;">← Back</button>
+            <h2 style="margin: 0; font-size: 18px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.9;">
+              Level Creator (v2)
+            </h2>
+          </div>
+          <div style="display:flex; gap: 8px;">
+            <button id="btnCreatorNew" class="menu-btn" style="padding: 6px 14px;">New Level</button>
+            <button id="btnCreatorPlaytest" class="menu-btn" style="padding: 6px 14px; opacity: 0.6; cursor: default;" disabled>
+              Playtest (soon)
+            </button>
+          </div>
+        </div>
+
+        <!-- Body layout -->
+        <div style="display:grid; grid-template-columns: 220px 1fr 260px; gap: 16px; min-height: 420px;">
+          <!-- Toolbox -->
+<aside style="background: rgba(15,23,42,0.9); border-radius: 12px; padding: 12px; border: 1px solid rgba(148,163,184,0.4);">
+  <h3 style="margin-top:0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity:0.8;">
+    Tools
+  </h3>
+  <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+    <button id="toolSelect" class="tool-btn tool-btn-active">Select / Move</button>
+    <button id="toolWall" class="tool-btn">Walls</button>
+    <button id="toolSpawn" class="tool-btn">Player Spawn</button>
+    <button id="toolPortal" class="tool-btn">Portal</button>
+
+    <div style="margin-top:10px; font-size:11px; opacity:0.7;">
+      Enemies, traps, powerups, and logic tools coming next.
+    </div>
+  </div>
+</aside>
+
+          <!-- Canvas area -->
+          <main id="creatorCanvasContainer" style="background: radial-gradient(circle at top, #020617 0%, #020617 40%, #000 100%); border-radius: 12px; border: 1px solid rgba(56,189,248,0.4); position: relative; overflow: hidden; display:flex; align-items:center; justify-content:center;">
+            <canvas id="editorCanvas" width="800" height="600" style="max-width:100%; max-height:100%;"></canvas>
+          </main>
+
+
+          <!-- Properties / meta -->
+          <aside style="background: rgba(15,23,42,0.9); border-radius: 12px; padding: 12px; border: 1px solid rgba(148,163,184,0.4);">
+            <h3 style="margin-top:0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity:0.8;">
+              Level Info
+            </h3>
+            <div style="font-size: 13px; opacity: 0.9;">
+              <div><strong>Name:</strong> <span id="creatorLevelName">Untitled</span></div>
+              <div><strong>Mode:</strong> Creator</div>
+              <div><strong>Status:</strong> <span id="creatorStatus">Empty level</span></div>
+            </div>
+            <p style="font-size:11px; opacity:0.65; margin-top:12px;">
+              As we build the editor, this panel will show details for the selected entity: type, axis, speed, links,
+              etc.
+            </p>
+
+            <!-- Delete Selected button -->
+            <button
+              id="btnCreatorDelete"
+              class="danger-btn danger-btn-disabled"
+              disabled
+            >
+              Delete Selected
+            </button>
+          </aside>
+
+        </div>
+      </div>
+    </div>
+
 
     <!-- QUEST SCREEN -->
     <div id="questScreen" class="screen hidden">

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "live-server --ignore=node_modules --ignore=.git --open=index.html"
+"dev": "live-server . --ignorePattern='(node_modules|\\.git)' --open=index.html"
   },
   "devDependencies": {
     "live-server": "^1.2.0"
