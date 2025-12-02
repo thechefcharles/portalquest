@@ -1,105 +1,111 @@
 // src/renderer/renderGame.js
-// Draw the current GameState to the canvas
+//
+// UNIVERSAL renderer for both Quest mode AND Editor mode.
+// Editor should reuse these helpers (clearBackground, drawGrid, drawLevelStatic, etc.)
+// so everything (walls, traps, powerups, keys, doors, switches, portal, enemies, player)
+// looks exactly the same in build mode and play mode.
+//
 
 import { GRID_SIZE, COLORS } from "../core/config.js";
 
-
+//
+// MAIN RENDERER
 // NOTE: ctx FIRST, state SECOND — matches main.js
+//
 export function renderGame(ctx, state) {
-  const {
-    width,
-    height,
-    obstacles,
-    portal,
-    player,
-    enemies,
-    powerups,
-    traps,
-    keys,
-    doors,
-    switches,
-    gameWon,
-    gameOver,
-  } = state;
-    
-  // Background
+  if (!state) return;
+
+  const { width, height } = state;
+
+  clearBackground(ctx, width, height);
+  drawGrid(ctx, width, height);
+
+  drawLevelStatic(ctx, state);
+  drawEnemies(ctx, state);
+  drawPlayer(ctx, state.player);
+  drawHealthBar(ctx, state.player);
+
+  if (state.gameWon) {
+    drawOverlayText(ctx, width, height, "Yezzir!");
+  } else if (state.gameOver) {
+    drawOverlayText(ctx, width, height, "See Ya Bud!");
+  }
+}
+
+//
+// ─────────────────────────────
+//  BACKGROUND + GRID
+// ─────────────────────────────
+//
+
+export function clearBackground(ctx, width, height) {
   ctx.clearRect(0, 0, width, height);
 
   const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
   bgGradient.addColorStop(0, COLORS.backgroundTop);
   bgGradient.addColorStop(1, COLORS.backgroundBottom);
+
   ctx.fillStyle = bgGradient;
   ctx.fillRect(0, 0, width, height);
-
-// Neon grid
-ctx.strokeStyle = COLORS.gridLine;
-ctx.lineWidth = 1;
-for (let y = GRID_SIZE; y < height; y += GRID_SIZE) {
-  ctx.beginPath();
-  ctx.moveTo(0, y);
-  ctx.lineTo(width, y);
-  ctx.stroke();
-}
-for (let x = GRID_SIZE; x < width; x += GRID_SIZE) {
-  ctx.beginPath();
-  ctx.moveTo(x, 0);
-  ctx.lineTo(x, height);
-  ctx.stroke();
 }
 
-  // Walls
+export function drawGrid(ctx, width, height) {
+  ctx.strokeStyle = COLORS.gridLine;
+  ctx.lineWidth = 1;
+
+  for (let y = GRID_SIZE; y < height; y += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+  for (let x = GRID_SIZE; x < width; x += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+}
+
+//
+// ─────────────────────────────
+//  STATIC LEVEL CONTENT
+// ─────────────────────────────
+//
+
+export function drawLevelStatic(ctx, state) {
+  drawObstacles(ctx, state.obstacles);
+  drawPortal(ctx, state.portal);
+  drawTraps(ctx, state.traps);
+  drawDoors(ctx, state.doors);
+  drawSwitches(ctx, state.switches);
+  drawKeys(ctx, state.keys);
+  drawPowerups(ctx, state.powerups);
+}
+
+export function drawObstacles(ctx, obstacles) {
+  if (!obstacles) return;
+
   ctx.fillStyle = COLORS.wallFill;
   ctx.strokeStyle = COLORS.wallStroke;
   ctx.lineWidth = 2;
+
   obstacles.forEach((o) => {
     ctx.fillRect(o.x, o.y, o.w, o.h);
     ctx.strokeRect(o.x, o.y, o.w, o.h);
   });
-
-// Portal
-  drawPortal(ctx, portal);
-
-  // Traps
-  traps.forEach((t) => drawTrap(ctx, t));
-
-  // Doors
-  doors.forEach((d) => drawDoor(ctx, d));
-
-  // Switches
-  switches.forEach((s) => drawSwitch(ctx, s));
-
-  // Keys
-  keys.forEach((k) => drawKey(ctx, k));
-
-  // Powerups
-  powerups.forEach((p) => drawPowerup(ctx, p));
-
-  // Enemies
-  enemies.forEach((e) => drawEnemy(ctx, e));
-
-  // Player
-  drawPlayer(ctx, player);
-
-  // Health bar
-  drawHealthBar(ctx, player);
-
-  // Overlays
-  if (gameWon) {
-    drawOverlayText(ctx, width, height, "Yezzir!");
-  } else if (gameOver) {
-    drawOverlayText(ctx, width, height, "See Ya Bud!");
-  }
 }
 
-function drawPortal(ctx, portal) {
+export function drawPortal(ctx, portal) {
+  if (!portal) return;
   const { x, y, r } = portal;
 
-  const gradient = ctx.createRadialGradient(x, y, 4, x, y, r);
-  gradient.addColorStop(0, COLORS.portalInner);
-  gradient.addColorStop(0.5, COLORS.portalMid);
-  gradient.addColorStop(1, COLORS.portalOuter);
+  const g = ctx.createRadialGradient(x, y, 4, x, y, r);
+  g.addColorStop(0, COLORS.portalInner);
+  g.addColorStop(0.5, COLORS.portalMid);
+  g.addColorStop(1, COLORS.portalOuter);
 
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = g;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
@@ -107,6 +113,11 @@ function drawPortal(ctx, portal) {
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.stroke();
+}
+
+export function drawTraps(ctx, traps) {
+  if (!traps) return;
+  traps.forEach((t) => drawTrap(ctx, t));
 }
 
 function drawTrap(ctx, t) {
@@ -157,15 +168,88 @@ function drawTrap(ctx, t) {
   }
 }
 
-function drawPlayer(ctx, player) {
-  const { x, y, w, h } = player;
+export function drawKeys(ctx, keys) {
+  if (!keys) return;
+  keys.forEach((k) => drawKey(ctx, k));
+}
 
-  const grad = ctx.createLinearGradient(x, y, x, y + h);
-  grad.addColorStop(0, COLORS.playerFillTop);
-  grad.addColorStop(1, COLORS.playerFillBottom);
+function drawKey(ctx, k) {
+  const r = k.r || 10;
+  const { x, y } = k;
 
-  ctx.fillStyle = grad;
-  const r = 5;
+  ctx.strokeStyle = "#ffd966";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.7, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = "#facc15";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x + r * 0.5, y);
+  ctx.lineTo(x + r * 1.3, y);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(x + r * 1.1, y);
+  ctx.lineTo(x + r * 1.1, y + 4);
+  ctx.moveTo(x + r * 0.9, y);
+  ctx.lineTo(x + r * 0.9, y - 4);
+  ctx.stroke();
+}
+
+export function drawDoors(ctx, doors) {
+  if (!doors) return;
+  doors.forEach((d) => drawDoor(ctx, d));
+}
+
+function drawDoor(ctx, d) {
+  if (d.type === "key") {
+    const g = ctx.createLinearGradient(d.x, d.y, d.x + d.w, d.y + d.h);
+    g.addColorStop(0, "#b07bff");
+    g.addColorStop(1, "#7b4cff");
+
+    ctx.fillStyle = g;
+    ctx.fillRect(d.x, d.y, d.w, d.h);
+
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(d.x, d.y, d.w, d.h);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🔒", d.x + d.w / 2, d.y + d.h / 2);
+  } else if (d.type === "switch") {
+    const g = ctx.createLinearGradient(d.x, d.y, d.x + d.w, d.y + d.h);
+    g.addColorStop(0, "#6fffd7");
+    g.addColorStop(1, "#1bb6aa");
+
+    ctx.fillStyle = g;
+    ctx.fillRect(d.x, d.y, d.w, d.h);
+
+    ctx.strokeStyle = "#eaffff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(d.x, d.y, d.w, d.h);
+
+    ctx.fillStyle = "#eaffff";
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("⏻", d.x + d.w / 2, d.y + d.h / 2);
+  }
+}
+
+export function drawSwitches(ctx, switches) {
+  if (!switches) return;
+  switches.forEach((s) => drawSwitch(ctx, s));
+}
+
+function drawSwitch(ctx, s) {
+  ctx.fillStyle = s.activated ? "rgba(34,197,94,0.9)" : "rgba(250,204,21,0.9)";
+  const r = 4;
+  const { x, y, w, h } = s;
 
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -180,57 +264,20 @@ function drawPlayer(ctx, player) {
   ctx.closePath();
   ctx.fill();
 
-  // visor
-  ctx.fillStyle = "#2b1b00";
-  ctx.fillRect(x + 4, y + 6, w - 8, 6);
+  ctx.strokeStyle = "rgba(15,23,42,0.9)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+
+  ctx.fillStyle = "#111827";
+  ctx.font = "10px system-ui";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("⏺", x + w / 2, y + h / 2);
 }
 
-function drawEnemy(ctx, e) {
-  if (e.type === "patrol") {
-    // red square with stripes
-    const grad = ctx.createLinearGradient(e.x, e.y, e.x + e.w, e.y + e.h);
-    grad.addColorStop(0, "#ff5a5a");
-    grad.addColorStop(1, "#b01717");
-    ctx.fillStyle = grad;
-    ctx.fillRect(e.x, e.y, e.w, e.h);
-
-    ctx.strokeStyle = "rgba(255,255,255,0.4)";
-    ctx.beginPath();
-    ctx.moveTo(e.x, e.y + 4);
-    ctx.lineTo(e.x + e.w, e.y + 4);
-    ctx.moveTo(e.x, e.y + e.h - 4);
-    ctx.lineTo(e.x + e.w, e.y + e.h - 4);
-    ctx.stroke();
-  } else if (e.type === "chaser") {
-    // pink triangle hunter
-    ctx.fillStyle = "#ff3cd1";
-    ctx.beginPath();
-    ctx.moveTo(e.x + e.w / 2, e.y);          // top
-    ctx.lineTo(e.x + e.w, e.y + e.h);        // bottom-right
-    ctx.lineTo(e.x, e.y + e.h);              // bottom-left
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  } else if (e.type === "spinner") {
-    // teal ring
-    const cx = e.x + e.w / 2;
-    const cy = e.y + e.h / 2;
-    const radius = e.w / 2;
-
-    ctx.strokeStyle = "#00ffcc";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.fillStyle = "rgba(0, 255, 204, 0.3)";
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius * 0.3, 0, Math.PI * 2);
-    ctx.fill();
-  }
+export function drawPowerups(ctx, powerups) {
+  if (!powerups) return;
+  powerups.forEach((p) => drawPowerup(ctx, p));
 }
 
 function drawPowerup(ctx, p) {
@@ -287,76 +334,73 @@ function drawPowerup(ctx, p) {
   }
 }
 
-function drawKey(ctx, k) {
-  const r = k.r || 10;
-  const { x, y } = k;
+//
+// ─────────────────────────────
+//  ENEMIES + PLAYER + UI
+// ─────────────────────────────
+//
 
-  // key ring
-  ctx.strokeStyle = "#ffd966";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(x, y, r * 0.7, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // key stem
-  ctx.strokeStyle = "#facc15";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(x + r * 0.5, y);
-  ctx.lineTo(x + r * 1.3, y);
-  ctx.stroke();
-
-  // teeth
-  ctx.beginPath();
-  ctx.moveTo(x + r * 1.1, y);
-  ctx.lineTo(x + r * 1.1, y + 4);
-  ctx.moveTo(x + r * 0.9, y);
-  ctx.lineTo(x + r * 0.9, y - 4);
-  ctx.stroke();
+export function drawEnemies(ctx, state) {
+  if (!state.enemies) return;
+  state.enemies.forEach((e) => drawEnemy(ctx, e));
 }
 
-function drawDoor(ctx, d) {
-  if (d.type === "key") {
-    // Purple key door
-    const grad = ctx.createLinearGradient(d.x, d.y, d.x + d.w, d.y + d.h);
-    grad.addColorStop(0, "#b07bff");
-    grad.addColorStop(1, "#7b4cff");
-    ctx.fillStyle = grad;
-    ctx.fillRect(d.x, d.y, d.w, d.h);
+function drawEnemy(ctx, e) {
+  if (e.type === "patrol") {
+    const g = ctx.createLinearGradient(e.x, e.y, e.x + e.w, e.y + e.h);
+    g.addColorStop(0, "#ff5a5a");
+    g.addColorStop(1, "#b01717");
+    ctx.fillStyle = g;
+    ctx.fillRect(e.x, e.y, e.w, e.h);
 
-    ctx.strokeStyle = "#e5e7eb";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(d.x, d.y, d.w, d.h);
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.beginPath();
+    ctx.moveTo(e.x, e.y + 4);
+    ctx.lineTo(e.x + e.w, e.y + 4);
+    ctx.moveTo(e.x, e.y + e.h - 4);
+    ctx.lineTo(e.x + e.w, e.y + e.h - 4);
+    ctx.stroke();
+  } else if (e.type === "chaser") {
+    ctx.fillStyle = "#ff3cd1";
+    ctx.beginPath();
+    ctx.moveTo(e.x + e.w / 2, e.y);
+    ctx.lineTo(e.x + e.w, e.y + e.h);
+    ctx.lineTo(e.x, e.y + e.h);
+    ctx.closePath();
+    ctx.fill();
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "10px system-ui";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("🔒", d.x + d.w / 2, d.y + d.h / 2);
-  } else if (d.type === "switch") {
-    // Teal switch door
-    const grad = ctx.createLinearGradient(d.x, d.y, d.x + d.w, d.y + d.h);
-    grad.addColorStop(0, "#6fffd7");
-    grad.addColorStop(1, "#1bb6aa");
-    ctx.fillStyle = grad;
-    ctx.fillRect(d.x, d.y, d.w, d.h);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  } else if (e.type === "spinner") {
+    const cx = e.x + e.w / 2;
+    const cy = e.y + e.h / 2;
+    const radius = e.w / 2;
 
-    ctx.strokeStyle = "#eaffff";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(d.x, d.y, d.w, d.h);
+    ctx.strokeStyle = "#00ffcc";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
+    ctx.stroke();
 
-    ctx.fillStyle = "#eaffff";
-    ctx.font = "10px system-ui";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("⏻", d.x + d.w / 2, d.y + d.h / 2);
+    ctx.fillStyle = "rgba(0, 255, 204, 0.3)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius * 0.3, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
-function drawSwitch(ctx, s) {
-  ctx.fillStyle = s.activated ? "rgba(34,197,94,0.9)" : "rgba(250,204,21,0.9)";
-  const r = 4;
-  const { x, y, w, h } = s;
+export function drawPlayer(ctx, player) {
+  if (!player) return;
+
+  const { x, y, w, h } = player;
+
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0, COLORS.playerFillTop);
+  g.addColorStop(1, COLORS.playerFillBottom);
+
+  ctx.fillStyle = g;
+  const r = 5;
 
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -371,19 +415,13 @@ function drawSwitch(ctx, s) {
   ctx.closePath();
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(15,23,42,0.9)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x, y, w, h);
-
-  // icon
-  ctx.fillStyle = "#111827";
-  ctx.font = "10px system-ui";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("⏺", x + w / 2, y + h / 2);
+  ctx.fillStyle = "#2b1b00";
+  ctx.fillRect(x + 4, y + 6, w - 8, 6);
 }
 
-function drawHealthBar(ctx, player) {
+export function drawHealthBar(ctx, player) {
+  if (!player) return;
+
   const barWidth = 120;
   const barHeight = 8;
   const x = 10;
@@ -394,11 +432,11 @@ function drawHealthBar(ctx, player) {
   ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
   ctx.fillRect(x - 1, y - 1, barWidth + 2, barHeight + 2);
 
-  const grad = ctx.createLinearGradient(x, y, x + barWidth, y);
-  grad.addColorStop(0, "#22c55e");
-  grad.addColorStop(1, "#ef4444");
+  const g = ctx.createLinearGradient(x, y, x + barWidth, y);
+  g.addColorStop(0, "#22c55e");
+  g.addColorStop(1, "#ef4444");
 
-  ctx.fillStyle = grad;
+  ctx.fillStyle = g;
   ctx.fillRect(x, y, barWidth * Math.max(0, ratio), barHeight);
 
   ctx.strokeStyle = "#111827";

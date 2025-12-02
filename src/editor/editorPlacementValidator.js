@@ -161,3 +161,52 @@ export function canPlacePortalAtGrid(level, gridX, gridY) {
   const candidate = { cx, cy, r: PORTAL_RADIUS };
   return !circleOverlapsLevel(level, candidate);
 }
+
+// NEW: canPlaceTrapAtGrid
+export function canPlaceTrapAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+
+  const size = GRID_SIZE;
+  const candidate = {
+    x: gridX * GRID_SIZE,
+    y: gridY * GRID_SIZE,
+    w: size,
+    h: size,
+  };
+
+  // Basic: don't overlap walls, doors, other traps
+  const rects = [
+    ...(level.obstacles || []),
+    ...(level.doors || []),
+    ...(level.traps || []),
+  ];
+
+  for (const r of rects) {
+    if (rectOverlap(candidate, r)) return false;
+  }
+
+  return true;
+}
+
+// NEW: canPlacePowerupAtGrid
+export function canPlacePowerupAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+
+  const cx = gridX * GRID_SIZE + GRID_SIZE / 2;
+  const cy = gridY * GRID_SIZE + GRID_SIZE / 2;
+  const r = GRID_SIZE * 0.3;
+
+  const candidate = { cx, cy, r };
+
+  // Avoid overlap with other powerups and keys
+  const circles = [
+    ...(level.powerups || []).map((p) => ({ cx: p.x, cy: p.y, r: p.r || r })),
+    ...(level.keys || []).map((k) => ({ cx: k.x, cy: k.y, r: k.r || r })),
+  ];
+
+  for (const c of circles) {
+    if (circleOverlap(candidate, c)) return false;
+  }
+
+  return true;
+}

@@ -2,11 +2,16 @@
 // Central place to track Level Creator state.
 
 export const editorState = {
-  currentLevel: null,        // LevelData we are editing
-  activeTool: 'select',      // 'select' | 'wall' | 'spawn' | 'portal' | ...
-  selectedEntity: null,      // { kind, index } | { kind: 'spawn' } | { kind: 'portal' } | null
-  hover: null,               // { tool, gridX, gridY, isValid } or null
-  isTesting: false,          // true when in in-editor playtest
+  currentLevel: null,
+  activeTool: 'select',
+  selectedEntity: null,
+  hover: null,
+  isTesting: false,
+
+  // NEW: active placement types for tools
+  activeTrapType: 'fire',
+  activePowerupType: 'speed',
+  activeWallType: 'solid', // future-proof, only "solid" for now
 };
 
 /**

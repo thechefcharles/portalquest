@@ -1,136 +1,161 @@
 // src/editor/editorRenderer.js
-import { GRID_SIZE, COLORS, PORTAL_RADIUS } from "../core/config.js";
+import { GRID_SIZE, PORTAL_RADIUS } from "../core/config.js";
 import { editorState } from "./editorState.js";
+
+// Reuse the same renderer helpers as Quest mode
+import {
+  clearBackground,
+  drawGrid,
+  drawLevelStatic,
+  drawEnemies,
+} from "../renderer/renderGame.js";
 
 export function renderEditor(ctx) {
   const canvas = ctx.canvas;
   const { width, height } = canvas;
 
-  // Background – match Quest mode
-  ctx.clearRect(0, 0, width, height);
-  const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-  bgGradient.addColorStop(0, COLORS.backgroundTop || "#1c2541");
-  bgGradient.addColorStop(1, COLORS.backgroundBottom || "#020308");
-  ctx.fillStyle = bgGradient;
-  ctx.fillRect(0, 0, width, height);
-
-  // Neon grid – match Quest mode
-  ctx.strokeStyle = COLORS.gridLine || "rgba(80,130,200,0.35)";
-  ctx.lineWidth = 1;
-  for (let y = 0; y < height; y += GRID_SIZE) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  }
-  for (let x = 0; x < width; x += GRID_SIZE) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
-  }
+  // Same background + grid as play mode
+  clearBackground(ctx, width, height);
+  drawGrid(ctx, width, height);
 
   const level = editorState.currentLevel;
   if (!level) return;
 
-  // Walls
-  ctx.fillStyle = COLORS.wallFill || "#1b2535";
-  ctx.strokeStyle = COLORS.wallStroke || "#4f6a9a";
-  ctx.lineWidth = 2;
+  // Build a "view state" in the same shape renderGame expects
+  const viewState = {
+    width,
+    height,
+    obstacles: level.obstacles || [],
+    traps: level.traps || [],
+    powerups: level.powerups || [],
+    keys: level.keys || [],
+    doors: level.doors || [],
+    switches: level.switches || [],
+    portal: level.portal || null,
+    enemies: level.enemies || [],
+    // we don't need player here for static view
+  };
 
-  (level.obstacles || []).forEach((o) => {
-    ctx.fillRect(o.x, o.y, o.w, o.h);
-    ctx.strokeRect(o.x, o.y, o.w, o.h);
-  });
-  
-  // Highlight selected obstacle / spawn / portal
+  // Draw all static level content + enemies with the exact same visuals
+  drawLevelStatic(ctx, viewState);
+  drawEnemies(ctx, viewState);
+
+  // Editor-only overlays
+  drawSelectionHighlight(ctx, level);
+  drawSpawnMarker(ctx, level);
+  drawHoverPreview(ctx);
+}
+
+function drawSelectionHighlight(ctx, level) {
   const sel = editorState.selectedEntity;
-  if (sel) {
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "#f97316"; // orange highlight
+  if (!sel) return;
 
-    if (sel.kind === "obstacle") {
-      const o = (level.obstacles || [])[sel.index];
-      if (o) {
-        ctx.strokeRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4);
-      }
-    } else if (sel.kind === "spawn" && level.start) {
-      const sx = level.start.x;
-      const sy = level.start.y;
-      ctx.strokeRect(sx - 2, sy - 2, GRID_SIZE + 4, GRID_SIZE + 4);
-    } else if (sel.kind === "portal" && level.portal) {
-      const { x, y, r } = level.portal;
-      ctx.beginPath();
-      ctx.arc(x, y, (r || PORTAL_RADIUS) + 4, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#f97316"; // orange highlight
 
-  // Draw player spawn (start)
-  if (level.start) {
+  if (sel.kind === "obstacle") {
+    const o = (level.obstacles || [])[sel.index];
+    if (o) ctx.strokeRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4);
+  } else if (sel.kind === "spawn" && level.start) {
     const sx = level.start.x;
     const sy = level.start.y;
-    const size = GRID_SIZE;
-
-    const grad = ctx.createLinearGradient(sx, sy, sx, sy + size);
-    grad.addColorStop(0, COLORS.playerFillTop || "#ffdd66");
-    grad.addColorStop(1, COLORS.playerFillBottom || "#ff9f3b");
-
-    ctx.fillStyle = grad;
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 1.5;
-
-    ctx.beginPath();
-    ctx.moveTo(sx + size * 0.2, sy + size * 0.1);
-    ctx.lineTo(sx + size * 0.8, sy + size * 0.1);
-    ctx.lineTo(sx + size * 0.8, sy + size * 0.9);
-    ctx.lineTo(sx + size * 0.2, sy + size * 0.9);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  // Draw portal
-  if (level.portal) {
+    ctx.strokeRect(sx - 2, sy - 2, GRID_SIZE + 4, GRID_SIZE + 4);
+  } else if (sel.kind === "portal" && level.portal) {
     const { x, y, r } = level.portal;
-
-    const gradient = ctx.createRadialGradient(x, y, 4, x, y, r || PORTAL_RADIUS);
-    gradient.addColorStop(0, COLORS.portalInner || "#6effff");
-    gradient.addColorStop(0.5, COLORS.portalMid || "#00b9ff");
-    gradient.addColorStop(1, COLORS.portalOuter || "rgba(0,20,40,0.1)");
-
-    ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(x, y, r || PORTAL_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
+    ctx.arc(x, y, (r || PORTAL_RADIUS) + 4, 0, Math.PI * 2);
     ctx.stroke();
-  }
-
-  // Hover preview (for walls, spawn, portal)
-  const hover = editorState.hover;
-  if (hover && hover.gridX != null && hover.gridY != null) {
-    const x = hover.gridX * GRID_SIZE;
-    const y = hover.gridY * GRID_SIZE;
-    const colorValid = "rgba(34,197,94,0.45)";  // green
-    const colorInvalid = "rgba(239,68,68,0.45)"; // red
-
-    ctx.save();
-    ctx.fillStyle = hover.isValid ? colorValid : colorInvalid;
-
-    if (hover.tool === "wall" || hover.tool === "spawn") {
-      ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
-    } else if (hover.tool === "portal") {
-      const cx = x + GRID_SIZE / 2;
-      const cy = y + GRID_SIZE / 2;
-      const r = PORTAL_RADIUS;
+  } else if (sel.kind === "trap") {
+    const t = (level.traps || [])[sel.index];
+    if (t) ctx.strokeRect(t.x - 2, t.y - 2, t.w + 4, t.h + 4);
+  } else if (sel.kind === "powerup") {
+    const p = (level.powerups || [])[sel.index];
+    if (p) {
+      const r = p.r || GRID_SIZE * 0.3;
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2);
+      ctx.stroke();
+  } else if (sel.kind === "key") {
+    const k = (level.keys || [])[sel.index];
+    if (k) {
+      const r = k.r || GRID_SIZE * 0.3;
+      ctx.beginPath();
+      ctx.arc(k.x, k.y, r + 4, 0, Math.PI * 2);
+      ctx.stroke();
     }
+  } else if (sel.kind === "door") {
+    const d = (level.doors || [])[sel.index];
+    if (d) {
+      ctx.strokeRect(d.x - 2, d.y - 2, d.w + 4, d.h + 4);
+    }
+  } else if (sel.kind === "switch") {
+    const s = (level.switches || [])[sel.index];
+    if (s) {
+      ctx.strokeRect(s.x - 2, s.y - 2, s.w + 4, s.h + 4);
+    }
+  } else if (sel.kind === "enemy") {
+    const e = (level.enemies || [])[sel.index];
+    if (e) {
+      ctx.strokeRect(e.x - 2, e.y - 2, e.w + 4, e.h + 4);
+    }
+  }
+  }
+}
 
+function drawSpawnMarker(ctx, level) {
+  if (!level.start) return;
+
+  const sx = level.start.x;
+  const sy = level.start.y;
+  const size = GRID_SIZE;
+
+  // Use same player gradient colors as play mode
+  ctx.save();
+  const grad = ctx.createLinearGradient(sx, sy, sx, sy + size);
+  // fallbacks in case COLORS fields are missing
+  grad.addColorStop(0, "#ffdd66");
+  grad.addColorStop(1, "#ff9f3b");
+
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1.5;
+
+  ctx.beginPath();
+  ctx.moveTo(sx + size * 0.2, sy + size * 0.1);
+  ctx.lineTo(sx + size * 0.8, sy + size * 0.1);
+  ctx.lineTo(sx + size * 0.8, sy + size * 0.9);
+  ctx.lineTo(sx + size * 0.2, sy + size * 0.9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawHoverPreview(ctx) {
+  const hover = editorState.hover;
+  if (!hover || !hover.isValid) return;
+
+  const gx = hover.gridX;
+  const gy = hover.gridY;
+
+  if (hover.tool === "trap") {
+    const x = gx * GRID_SIZE;
+    const y = gy * GRID_SIZE;
+    ctx.save();
+    ctx.strokeStyle = "rgba(249, 115, 22, 0.8)";
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
+    ctx.restore();
+  } else if (hover.tool === "powerup") {
+    const cx = gx * GRID_SIZE + GRID_SIZE / 2;
+    const cy = gy * GRID_SIZE + GRID_SIZE / 2;
+    const r = GRID_SIZE * 0.3;
+    ctx.save();
+    ctx.strokeStyle = "rgba(34, 197, 94, 0.8)";
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 }

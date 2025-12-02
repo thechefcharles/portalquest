@@ -17,6 +17,12 @@ import {
   placeWallAtGrid,
   placeSpawnAtGrid,
   placePortalAtGrid,
+  placeTrapAtGrid,
+  placePowerupAtGrid,
+  placeKeyAtGrid,       // NEW
+  placeDoorAtGrid,      // NEW
+  placeSwitchAtGrid,    // NEW
+  placeEnemyAtGrid,     // NEW
 } from './editor/editorTools.js';
 import {
   findEntityAtPixel,
@@ -28,6 +34,8 @@ import {
   canPlaceWallAtGrid,
   canPlaceSpawnAtGrid,
   canPlacePortalAtGrid,
+  canPlaceTrapAtGrid,      // NEW
+  canPlacePowerupAtGrid,   // NEW
 } from './editor/editorPlacementValidator.js';
 
 import { GRID_SIZE } from './core/config.js';
@@ -54,10 +62,10 @@ import {
 } from './modes/questMode.js';
 import { validateLevel } from './core/levelValidator.js';
 import {
+  loadAllLevels,
   upsertLevel,
-  loadAllLevels,      // NEW
-  loadLevelById,      // NEW
-  deleteLevelById,    // NEW
+  loadLevelById,
+  deleteLevelById,
 } from './core/levelStorage.js';
 
 import {
@@ -89,8 +97,16 @@ const creatorPlaytestBtn = document.getElementById('btnCreatorPlaytest'); // not
 const creatorDeleteBtn = document.getElementById('btnCreatorDelete');
 const endTestBtn = document.getElementById('btnEndTest');
 
-const myPortalsList = document.getElementById('myPortalsList');     // NEW
-const createPortalBtn = document.getElementById('btnCreatePortal'); // NEW
+const myPortalsList = document.getElementById('myPortalsList');
+const createPortalBtn = document.getElementById('btnCreatePortal');
+
+// Portal editor DOM
+const portalEditorOverlay = document.getElementById('portalEditorOverlay');
+const portalEditorNameInput = document.getElementById('portalEditorName');
+const portalEditorAvailableList = document.getElementById('portalEditorAvailable');
+const portalEditorSelectedList = document.getElementById('portalEditorSelected');
+const portalEditorSaveBtn = document.getElementById('portalEditorSave');
+const portalEditorCancelBtn = document.getElementById('portalEditorCancel');
 
 const myLevelsBtn = document.getElementById('btnMyLevels');       // NEW
 const myLevelsBackBtn = document.getElementById('btnMyLevelsBack'); // NEW
@@ -101,6 +117,20 @@ const levelNameInput = document.getElementById('level-name-input');
 const saveLevelBtn = document.getElementById('save-level-btn');
 const creatorSaveStatusEl = document.getElementById('creator-save-status');
 const creatorLevelNameLabel = document.getElementById('creatorLevelName');
+
+// Placement type UI
+const trapPlacementRow = document.getElementById('trap-placement-row');
+const trapPlacementSelect = document.getElementById('trap-placement-select');
+const powerupPlacementRow = document.getElementById('powerup-placement-row');
+const powerupPlacementSelect = document.getElementById('powerup-placement-select');
+
+// Selected entity / type UI
+const selectedEntityPanel = document.getElementById('selected-entity-panel');
+const selectedEntityKindEl = document.getElementById('selected-entity-kind');
+const trapTypeRow = document.getElementById('trap-type-row');
+const trapTypeSelect = document.getElementById('trap-type-select');
+const powerupTypeRow = document.getElementById('powerup-type-row');
+const powerupTypeSelect = document.getElementById('powerup-type-select');
 
 
 const restartLevelBtn = document.getElementById('btnRestartLevel');
@@ -126,6 +156,26 @@ const toolSelectBtn = document.getElementById('toolSelect');
 const toolWallBtn = document.getElementById('toolWall');
 const toolSpawnBtn = document.getElementById('toolSpawn');
 const toolPortalBtn = document.getElementById('toolPortal');
+
+const toolTrapBtn = document.getElementById('toolTrap');         // NEW
+const toolPowerupBtn = document.getElementById('toolPowerup');   // NEW
+
+const toolKeyBtn = document.getElementById('toolKey');         // NEW
+const toolDoorBtn = document.getElementById('toolDoor');       // NEW
+const toolSwitchBtn = document.getElementById('toolSwitch');   // NEW
+const toolEnemyBtn = document.getElementById('toolEnemy');     // NEW
+
+const doorTypeRow = document.getElementById('door-type-row');
+const doorTypeSelect = document.getElementById('door-type-select');
+const doorIdRow = document.getElementById('door-id-row');
+const doorIdInput = document.getElementById('door-id-input');
+
+// Draft portal state for the editor overlay
+let portalEditorDraft = {
+  id: null,
+  name: '',
+  levelIds: [],   // ordered array of saved level IDs
+};
 
 // ===== Creator status helper =====
 function updateCreatorStatusFromLevel() {
@@ -279,6 +329,189 @@ playBtn.addEventListener('click', () => {
   });
 }
 
+function openPortalEditor(portalId = null) {
+  // Load levels for sidebar
+  const levels = loadAllLevels();
+
+  if (!levels.length) {
+    alert('You need at least one saved level to build a portal.');
+    return;
+  }
+
+  if (portalId) {
+    const portal = loadPortalById(portalId);
+    if (portal) {
+      portalEditorDraft.id = portal.id;
+      portalEditorDraft.name = portal.name || '';
+      portalEditorDraft.levelIds = Array.isArray(portal.levelIds) ? portal.levelIds.slice() : [];
+    } else {
+      // Fallback: new portal
+      portalEditorDraft.id = null;
+      portalEditorDraft.name = '';
+      portalEditorDraft.levelIds = [];
+    }
+  } else {
+    // New portal
+    portalEditorDraft.id = null;
+    portalEditorDraft.name = '';
+    portalEditorDraft.levelIds = [];
+  }
+
+  // Initialize inputs
+  if (portalEditorNameInput) {
+    portalEditorNameInput.value = portalEditorDraft.name || '';
+  }
+
+  renderPortalEditorLists();
+
+  if (portalEditorOverlay) {
+    portalEditorOverlay.classList.remove('hidden');
+  }
+}
+
+function closePortalEditor() {
+  if (portalEditorOverlay) {
+    portalEditorOverlay.classList.add('hidden');
+  }
+}
+
+function renderPortalEditorLists() {
+  if (!portalEditorAvailableList || !portalEditorSelectedList) return;
+
+  const levels = loadAllLevels();
+  const idSet = new Set(portalEditorDraft.levelIds);
+
+  // Available = all levels, but indicate if already in portal
+  portalEditorAvailableList.innerHTML = '';
+  levels.forEach((lvl) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.gap = '6px';
+    row.style.marginBottom = '4px';
+    row.style.fontSize = '13px';
+
+    const label = document.createElement('span');
+    label.textContent = lvl.name || 'Untitled Level';
+
+    const btn = document.createElement('button');
+    btn.className = 'menu-btn';
+    btn.style.padding = '2px 8px';
+    btn.style.fontSize = '11px';
+
+    if (idSet.has(lvl.id)) {
+      btn.textContent = 'Added';
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'default';
+    } else {
+      btn.textContent = 'Add';
+      btn.addEventListener('click', () => {
+        addLevelToPortalDraft(lvl.id);
+      });
+    }
+
+    row.appendChild(label);
+    row.appendChild(btn);
+    portalEditorAvailableList.appendChild(row);
+  });
+
+  // Selected = only levels whose ids are in draft.levelIds, in order
+  portalEditorSelectedList.innerHTML = '';
+  if (!portalEditorDraft.levelIds.length) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.textContent = 'No levels in this portal yet.';
+    emptyMsg.style.fontSize = '13px';
+    emptyMsg.style.opacity = '0.8';
+    portalEditorSelectedList.appendChild(emptyMsg);
+    return;
+  }
+
+  portalEditorDraft.levelIds.forEach((id, index) => {
+    const lvl = levels.find((l) => l.id === id);
+    const name = lvl ? (lvl.name || 'Untitled Level') : '(Missing level)';
+
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.gap = '6px';
+    row.style.marginBottom = '4px';
+    row.style.fontSize = '13px';
+
+    const label = document.createElement('span');
+    label.textContent = `${index + 1}. ${name}`;
+
+    const btnGroup = document.createElement('div');
+    btnGroup.style.display = 'flex';
+    btnGroup.style.gap = '4px';
+
+    const upBtn = document.createElement('button');
+    upBtn.className = 'menu-btn';
+    upBtn.style.padding = '2px 6px';
+    upBtn.style.fontSize = '11px';
+    upBtn.textContent = '↑';
+    upBtn.disabled = index === 0;
+    if (!upBtn.disabled) {
+      upBtn.addEventListener('click', () => {
+        moveLevelInPortalDraft(index, index - 1);
+      });
+    }
+
+    const downBtn = document.createElement('button');
+    downBtn.className = 'menu-btn';
+    downBtn.style.padding = '2px 6px';
+    downBtn.style.fontSize = '11px';
+    downBtn.textContent = '↓';
+    downBtn.disabled = index === portalEditorDraft.levelIds.length - 1;
+    if (!downBtn.disabled) {
+      downBtn.addEventListener('click', () => {
+        moveLevelInPortalDraft(index, index + 1);
+      });
+    }
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'menu-btn';
+    removeBtn.style.padding = '2px 6px';
+    removeBtn.style.fontSize = '11px';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => {
+      removeLevelFromPortalDraft(id);
+    });
+
+    btnGroup.appendChild(upBtn);
+    btnGroup.appendChild(downBtn);
+    btnGroup.appendChild(removeBtn);
+
+    row.appendChild(label);
+    row.appendChild(btnGroup);
+
+    portalEditorSelectedList.appendChild(row);
+  });
+}
+
+function addLevelToPortalDraft(levelId) {
+  if (!portalEditorDraft.levelIds.includes(levelId)) {
+    portalEditorDraft.levelIds.push(levelId);
+    renderPortalEditorLists();
+  }
+}
+
+function removeLevelFromPortalDraft(levelId) {
+  portalEditorDraft.levelIds = portalEditorDraft.levelIds.filter((id) => id !== levelId);
+  renderPortalEditorLists();
+}
+
+function moveLevelInPortalDraft(fromIndex, toIndex) {
+  const arr = portalEditorDraft.levelIds;
+  if (fromIndex < 0 || fromIndex >= arr.length) return;
+  if (toIndex < 0 || toIndex >= arr.length) return;
+  const [item] = arr.splice(fromIndex, 1);
+  arr.splice(toIndex, 0, item);
+  renderPortalEditorLists();
+}
+
 function renderMyPortalsList() {
   if (!myPortalsList) return;
 
@@ -310,26 +543,35 @@ function renderMyPortalsList() {
     actions.style.display = 'flex';
     actions.style.gap = '6px';
 
-    const playBtn = document.createElement('button');
-    playBtn.className = 'menu-btn';
-    playBtn.style.padding = '4px 10px';
-    playBtn.textContent = 'Play';
-    playBtn.addEventListener('click', () => {
-      playPortalFromMyLevels(portal.id);
-    });
+const playBtn = document.createElement('button');
+playBtn.className = 'menu-btn';
+playBtn.style.padding = '4px 10px';
+playBtn.textContent = 'Play';
+playBtn.addEventListener('click', () => {
+  playPortalFromMyLevels(portal.id);
+});
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'menu-btn';
-    deleteBtn.style.padding = '4px 10px';
-    deleteBtn.textContent = 'Delete';
-    deleteBtn.addEventListener('click', () => {
-      if (!confirm('Delete this portal?')) return;
-      deletePortalById(portal.id);
-      renderMyPortalsList();
-    });
+const editBtn = document.createElement('button');
+editBtn.className = 'menu-btn';
+editBtn.style.padding = '4px 10px';
+editBtn.textContent = 'Edit';
+editBtn.addEventListener('click', () => {
+  openPortalEditor(portal.id);
+});
 
-    actions.appendChild(playBtn);
-    actions.appendChild(deleteBtn);
+const deleteBtn = document.createElement('button');
+deleteBtn.className = 'menu-btn';
+deleteBtn.style.padding = '4px 10px';
+deleteBtn.textContent = 'Delete';
+deleteBtn.addEventListener('click', () => {
+  if (!confirm('Delete this portal?')) return;
+  deletePortalById(portal.id);
+  renderMyPortalsList();
+});
+
+actions.appendChild(playBtn);
+actions.appendChild(editBtn);   // NEW
+actions.appendChild(deleteBtn);
     row.appendChild(label);
     row.appendChild(actions);
     myPortalsList.appendChild(row);
@@ -454,6 +696,126 @@ function updateDeleteButtonState() {
   creatorDeleteBtn.classList.toggle('danger-btn-disabled', !hasSelection);
 }
 
+function updatePlacementPanelForTool() {
+  const tool = editorState.activeTool;
+
+  if (!trapPlacementRow || !powerupPlacementRow) return;
+
+  // Trap placement controls visible only when Trap tool is active
+  if (tool === 'trap') {
+    trapPlacementRow.style.display = 'flex';
+    if (trapPlacementSelect) {
+      trapPlacementSelect.value = editorState.activeTrapType || 'fire';
+    }
+  } else {
+    trapPlacementRow.style.display = 'none';
+  }
+
+  // Powerup placement controls visible only when Powerup tool is active
+  if (tool === 'powerup') {
+    powerupPlacementRow.style.display = 'flex';
+    if (powerupPlacementSelect) {
+      powerupPlacementSelect.value = editorState.activePowerupType || 'speed';
+    }
+  } else {
+    powerupPlacementRow.style.display = 'none';
+  }
+}
+
+function updateSelectedEntityPanel() {
+  if (!selectedEntityPanel) return;
+
+  const sel = editorState.selectedEntity;
+  const level = editorState.currentLevel;
+
+  if (!sel || !level) {
+    selectedEntityPanel.style.display = 'none';
+    return;
+  }
+
+  selectedEntityPanel.style.display = 'block';
+
+  let label = '';
+  let showTrap = false;
+  let showPowerup = false;
+  let showDoor = false;
+  let showDoorId = false;
+
+  if (sel.kind === 'trap') {
+    label = 'Trap';
+    showTrap = true;
+
+    const traps = level.traps || [];
+    const t = traps[sel.index];
+    if (t && trapTypeSelect) {
+      const validTypes = ['glue', 'fire', 'poison', 'spike'];
+      const type = validTypes.includes(t.type) ? t.type : 'spike';
+      trapTypeSelect.value = type;
+    }
+
+  } else if (sel.kind === 'powerup') {
+    label = 'Powerup';
+    showPowerup = true;
+
+    const powerups = level.powerups || [];
+    const p = powerups[sel.index];
+    if (p && powerupTypeSelect) {
+      const validTypes = ['speed', 'shield', 'dash'];
+      const type = validTypes.includes(p.type) ? p.type : 'speed';
+      powerupTypeSelect.value = type;
+    }
+
+  } else if (sel.kind === 'door') {
+    label = 'Door';
+    showDoor = true;
+
+    const doors = level.doors || [];
+    const d = doors[sel.index];
+    if (d && doorTypeSelect) {
+      const validTypes = ['key', 'switch'];
+      const type = validTypes.includes(d.type) ? d.type : 'key';
+      doorTypeSelect.value = type;
+
+      if (type === 'switch') {
+        showDoorId = true;
+        if (doorIdInput) {
+          doorIdInput.value = d.doorId || '';
+        }
+      }
+    }
+
+  } else if (sel.kind === 'spawn') {
+    label = 'Player Spawn';
+
+  } else if (sel.kind === 'portal') {
+    label = 'Portal';
+
+  } else if (sel.kind === 'obstacle') {
+    label = 'Wall';
+
+  } else {
+    label = sel.kind;
+  }
+
+  if (selectedEntityKindEl) {
+    selectedEntityKindEl.textContent = label;
+  }
+
+  if (trapTypeRow) {
+    trapTypeRow.style.display = showTrap ? 'flex' : 'none';
+  }
+  if (powerupTypeRow) {
+    powerupTypeRow.style.display = showPowerup ? 'flex' : 'none';
+  }
+  if (doorTypeRow) {
+    doorTypeRow.style.display = showDoor ? 'flex' : 'none';
+  }
+  if (doorIdRow) {
+    doorIdRow.style.display = showDoorId ? 'flex' : 'none';
+  }
+}
+
+
 function showEndTestButton(show) {
   if (!endTestBtn) return;
   endTestBtn.classList.toggle('hidden', !show);
@@ -472,7 +834,18 @@ function updateTestButtonLabel() {
 
 // Creator tools: manage active button visual
 function setToolButtonActive(activeBtn) {
-  [toolSelectBtn, toolWallBtn, toolSpawnBtn, toolPortalBtn].forEach((btn) => {
+  [
+    toolSelectBtn,
+    toolWallBtn,
+    toolSpawnBtn,
+    toolTrapBtn,
+    toolPowerupBtn,
+    toolKeyBtn,
+    toolDoorBtn,
+    toolSwitchBtn,
+    toolEnemyBtn,
+    toolPortalBtn,
+  ].forEach((btn) => {
     if (!btn) return;
     btn.classList.remove('tool-btn-active');
   });
@@ -526,7 +899,8 @@ if (creatorBtn) {
       updateCreatorStatusFromLevel();
     }
 
-    syncCreatorNameUI();  // NEW
+    syncCreatorNameUI(); 
+    updateSelectedEntityPanel();   // NEW
     showCreatorScreen();
   });
 }
@@ -576,11 +950,15 @@ if (creatorNewBtn) {
     setActiveTool('select');
     if (toolSelectBtn) setToolButtonActive(toolSelectBtn);
 
+        updatePlacementPanelForTool();  // NEW
+
     // Clear selection, hover, and update UI
     editorState.selectedEntity = null;
     editorState.hover = null;
     updateDeleteButtonState();
     updateCreatorStatusFromLevel();
+    updateSelectedEntityPanel();
+    updatePlacementPanelForTool();  // NEW
 
     // NEW: keep input + label in sync
     syncCreatorNameUI();
@@ -594,6 +972,7 @@ if (creatorDeleteBtn) {
     deleteSelectedEntity();
     updateDeleteButtonState();
     updateCreatorStatusFromLevel();
+    updateSelectedEntityPanel(); // NEW
   });
 }
 
@@ -603,6 +982,7 @@ if (toolSelectBtn) {
     setActiveTool('select');
     setToolButtonActive(toolSelectBtn);
     editorState.hover = null;
+    updatePlacementPanelForTool();      // NEW
   });
 }
 
@@ -610,6 +990,7 @@ if (toolWallBtn) {
   toolWallBtn.addEventListener('click', () => {
     setActiveTool('wall');
     setToolButtonActive(toolWallBtn);
+    updatePlacementPanelForTool();      // NEW
   });
 }
 
@@ -617,6 +998,61 @@ if (toolSpawnBtn) {
   toolSpawnBtn.addEventListener('click', () => {
     setActiveTool('spawn');
     setToolButtonActive(toolSpawnBtn);
+    updatePlacementPanelForTool();      // NEW
+  });
+}
+
+// Trap tool
+if (toolTrapBtn) {
+  toolTrapBtn.addEventListener('click', () => {
+    setActiveTool('trap');
+    setToolButtonActive(toolTrapBtn);
+    updatePlacementPanelForTool();      // NEW
+  });
+}
+
+// Powerup tool
+if (toolPowerupBtn) {
+  toolPowerupBtn.addEventListener('click', () => {
+    setActiveTool('powerup');
+    setToolButtonActive(toolPowerupBtn);
+    updatePlacementPanelForTool();      // NEW
+  });
+}
+
+if (doorTypeSelect) {
+  doorTypeSelect.addEventListener('change', (e) => {
+    const sel = editorState.selectedEntity;
+    const level = editorState.currentLevel;
+    if (!sel || sel.kind !== 'door') return;
+
+    const d = level.doors[sel.index];
+    if (!d) return;
+
+    d.type = e.target.value;
+
+    // If switching to key door, remove doorId
+    if (d.type === 'key') {
+      d.doorId = null;
+      doorIdRow.style.display = 'none';
+    }
+
+    updateCreatorStatusFromLevel();
+    updateSelectedEntityPanel();
+  });
+}
+
+if (doorIdInput) {
+  doorIdInput.addEventListener('input', (e) => {
+    const sel = editorState.selectedEntity;
+    const level = editorState.currentLevel;
+    if (!sel || sel.kind !== 'door') return;
+
+    const d = level.doors[sel.index];
+    if (!d) return;
+
+    d.doorId = e.target.value.trim();
+    updateCreatorStatusFromLevel();
   });
 }
 
@@ -624,8 +1060,42 @@ if (toolPortalBtn) {
   toolPortalBtn.addEventListener('click', () => {
     setActiveTool('portal');
     setToolButtonActive(toolPortalBtn);
+    updatePlacementPanelForTool();      // NEW
   });
 }
+
+if (toolKeyBtn) {
+  toolKeyBtn.addEventListener('click', () => {
+    setActiveTool('key');
+    setToolButtonActive(toolKeyBtn);
+    updatePlacementPanelForTool();
+  });
+}
+
+if (toolDoorBtn) {
+  toolDoorBtn.addEventListener('click', () => {
+    setActiveTool('door');
+    setToolButtonActive(toolDoorBtn);
+    updatePlacementPanelForTool();
+  });
+}
+
+if (toolSwitchBtn) {
+  toolSwitchBtn.addEventListener('click', () => {
+    setActiveTool('switch');
+    setToolButtonActive(toolSwitchBtn);
+    updatePlacementPanelForTool();
+  });
+}
+
+if (toolEnemyBtn) {
+  toolEnemyBtn.addEventListener('click', () => {
+    setActiveTool('enemy');
+    setToolButtonActive(toolEnemyBtn);
+    updatePlacementPanelForTool();
+  });
+}
+
 // Creator → Test Game / Restart (in-editor)
 if (creatorPlaytestBtn) {
   // enable button visually (it was disabled in HTML)
@@ -669,18 +1139,35 @@ if (creatorPlaytestBtn) {
 
 if (createPortalBtn) {
   createPortalBtn.addEventListener('click', () => {
-    const levels = loadAllLevels();
-    if (!levels.length) {
-      alert('You need at least one saved level to create a portal.');
+    openPortalEditor(null); // new blank portal
+  });
+}
+
+if (portalEditorCancelBtn) {
+  portalEditorCancelBtn.addEventListener('click', () => {
+    closePortalEditor();
+  });
+}
+
+if (portalEditorSaveBtn) {
+  portalEditorSaveBtn.addEventListener('click', () => {
+    const name = portalEditorNameInput ? portalEditorNameInput.value.trim() : '';
+    if (!name) {
+      alert('Portal name cannot be empty.');
+      return;
+    }
+    if (!portalEditorDraft.levelIds.length) {
+      alert('Portal must contain at least one level.');
       return;
     }
 
-    const name = window.prompt('Name this portal:', 'My Portal');
-    if (name == null) return; // user cancelled
+    upsertPortal({
+      id: portalEditorDraft.id,
+      name,
+      levelIds: portalEditorDraft.levelIds,
+    });
 
-    const levelIds = levels.map((lvl) => lvl.id);
-    upsertPortal({ id: null, name, levelIds });
-
+    closePortalEditor();
     renderMyPortalsList();
   });
 }
@@ -926,6 +1413,7 @@ window.addEventListener('keydown', (e) => {
       deleteSelectedEntity();
       updateDeleteButtonState();
       updateCreatorStatusFromLevel();
+      updateSelectedEntityPanel(); // NEW
       return;
     }
 
@@ -1003,10 +1491,14 @@ if (editorCanvas) {
       isValid = canPlaceSpawnAtGrid(level, gridX, gridY);
     } else if (tool === 'portal') {
       isValid = canPlacePortalAtGrid(level, gridX, gridY);
+    } else if (tool === 'trap') {                         // NEW
+      isValid = canPlaceTrapAtGrid(level, gridX, gridY);
+    } else if (tool === 'powerup') {                      // NEW
+      isValid = canPlacePowerupAtGrid(level, gridX, gridY);
     }
 
     editorState.hover = { tool, gridX, gridY, isValid };
-  });
+    });
 
   editorCanvas.addEventListener('mouseleave', () => {
     editorState.hover = null;
@@ -1018,7 +1510,7 @@ if (editorCanvas) {
   editorCanvas.addEventListener('mousedown', (e) => {
     if (state.mode !== 'creator') return;
     if (!editorState.currentLevel) return;
-     if (editorState.isTesting) return; // NEW: no editing during test
+    if (editorState.isTesting) return; // NEW: no editing during test
 
     const rect = editorCanvas.getBoundingClientRect();
     const scaleX = editorCanvas.width / rect.width;
@@ -1036,18 +1528,63 @@ if (editorCanvas) {
       if (!canPlaceWallAtGrid(level, gridX, gridY)) return;
       placeWallAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
+
     } else if (tool === 'spawn') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
       if (!canPlaceSpawnAtGrid(level, gridX, gridY)) return;
       placeSpawnAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
+
     } else if (tool === 'portal') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
       if (!canPlacePortalAtGrid(level, gridX, gridY)) return;
       placePortalAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
+
+    } else if (tool === 'trap') {
+      const gridX = Math.floor(x / GRID_SIZE);
+      const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlaceTrapAtGrid(level, gridX, gridY)) return;
+      const trapType = editorState.activeTrapType || 'fire';
+      placeTrapAtGrid(gridX, gridY, trapType);
+      updateCreatorStatusFromLevel();
+
+    } else if (tool === 'powerup') {
+      const gridX = Math.floor(x / GRID_SIZE);
+      const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlacePowerupAtGrid(level, gridX, gridY)) return;
+      const powerType = editorState.activePowerupType || 'speed';
+      placePowerupAtGrid(gridX, gridY, powerType);
+      updateCreatorStatusFromLevel();
+
+    } else if (tool === 'key') {
+      const gridX = Math.floor(x / GRID_SIZE);
+      const gridY = Math.floor(y / GRID_SIZE);
+      placeKeyAtGrid(gridX, gridY);
+      updateCreatorStatusFromLevel();
+
+    } else if (tool === 'door') {
+      const gridX = Math.floor(x / GRID_SIZE);
+      const gridY = Math.floor(y / GRID_SIZE);
+      // default door type is "key" (can change later in inspector)
+      placeDoorAtGrid(gridX, gridY, 'key');
+      updateCreatorStatusFromLevel();
+
+    } else if (tool === 'switch') {
+      const gridX = Math.floor(x / GRID_SIZE);
+      const gridY = Math.floor(y / GRID_SIZE);
+      placeSwitchAtGrid(gridX, gridY);
+      updateCreatorStatusFromLevel();
+
+    } else if (tool === 'enemy') {
+      const gridX = Math.floor(x / GRID_SIZE);
+      const gridY = Math.floor(y / GRID_SIZE);
+      // default enemy type is patrol; we’ll add type controls next
+      placeEnemyAtGrid(gridX, gridY, 'patrol');
+      updateCreatorStatusFromLevel();
+
     } else if (tool === 'select') {
       const hit = findEntityAtPixel(x, y);
       const currentSel = editorState.selectedEntity;
@@ -1055,10 +1592,12 @@ if (editorCanvas) {
       if (!currentSel) {
         editorState.selectedEntity = hit;
         updateDeleteButtonState();
+        updateSelectedEntityPanel();            // NEW
       } else {
         if (hit) {
           editorState.selectedEntity = hit;
           updateDeleteButtonState();
+          updateSelectedEntityPanel();          // NEW
         } else {
           const gridX = Math.floor(x / GRID_SIZE);
           const gridY = Math.floor(y / GRID_SIZE);
@@ -1066,7 +1605,76 @@ if (editorCanvas) {
           editorState.selectedEntity = null;
           updateDeleteButtonState();
           updateCreatorStatusFromLevel();
+          updateSelectedEntityPanel();          // NEW
         }
+      }
+    }
+  });
+}
+
+if (trapTypeSelect) {
+  trapTypeSelect.addEventListener('change', (e) => {
+    const level = editorState.currentLevel;
+    const sel = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'trap') return;
+
+    const traps = level.traps || [];
+    const t = traps[sel.index];
+    if (!t) return;
+
+    t.type = e.target.value || 'spike';
+    updateCreatorStatusFromLevel();
+  });
+}
+
+if (powerupTypeSelect) {
+  powerupTypeSelect.addEventListener('change', (e) => {
+    const level = editorState.currentLevel;
+    const sel = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'powerup') return;
+
+    const powerups = level.powerups || [];
+    const p = powerups[sel.index];
+    if (!p) return;
+
+    p.type = e.target.value || 'speed';
+    updateCreatorStatusFromLevel();
+  });
+}
+
+if (trapPlacementSelect) {
+  trapPlacementSelect.addEventListener('change', (e) => {
+    const val = e.target.value || 'fire';
+    editorState.activeTrapType = val;
+
+    // Optional: if a trap is selected, also change its type
+    const sel = editorState.selectedEntity;
+    const level = editorState.currentLevel;
+    if (sel && level && sel.kind === 'trap') {
+      const traps = level.traps || [];
+      const t = traps[sel.index];
+      if (t) {
+        t.type = val;
+        updateCreatorStatusFromLevel();
+      }
+    }
+  });
+}
+
+if (powerupPlacementSelect) {
+  powerupPlacementSelect.addEventListener('change', (e) => {
+    const val = e.target.value || 'speed';
+    editorState.activePowerupType = val;
+
+    // Optional: if a powerup is selected, also change its type
+    const sel = editorState.selectedEntity;
+    const level = editorState.currentLevel;
+    if (sel && level && sel.kind === 'powerup') {
+      const powerups = level.powerups || [];
+      const p = powerups[sel.index];
+      if (p) {
+        p.type = val;
+        updateCreatorStatusFromLevel();
       }
     }
   });

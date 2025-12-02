@@ -343,7 +343,7 @@
         </h3>
 
         <button id="btnCreatePortal" class="menu-btn" style="margin-bottom: 8px;">
-          Create Portal from All Levels
+          Create New Portal
         </button>
 
         <div id="myPortalsList" class="menu-buttons" style="margin-bottom: 12px;">
@@ -352,6 +352,82 @@
 
         <button id="btnMyLevelsBack" class="menu-btn">Back to Main Menu</button>
             </div>
+    </div>
+
+        <!-- PORTAL EDITOR OVERLAY -->
+    <div
+      id="portalEditorOverlay"
+      class="hidden"
+      style="
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+      "
+    >
+      <div
+        class="menu-card"
+        style="max-width: 720px; width: 100%; text-align: left;"
+      >
+        <h2 style="margin-top:0; font-size: 18px; letter-spacing: 0.12em; text-transform: uppercase;">
+          Portal Editor
+        </h2>
+
+        <!-- Name -->
+        <label style="display:block; margin-bottom: 12px; font-size: 13px;">
+          Portal Name:
+          <input
+            id="portalEditorName"
+            type="text"
+            placeholder="My Portal"
+            maxlength="40"
+            style="width: 100%; margin-top: 4px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:13px;"
+          />
+        </label>
+
+        <!-- Two-column layout -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <!-- All levels -->
+          <div>
+            <h3 style="margin:0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; opacity:0.8;">
+              Available Levels
+            </h3>
+            <div
+              id="portalEditorAvailable"
+              style="max-height: 260px; overflow-y: auto; border-radius: 8px; border: 1px solid rgba(148,163,184,0.4); padding: 8px;"
+            >
+              <!-- JS will render -->
+            </div>
+          </div>
+
+          <!-- Portal sequence -->
+          <div>
+            <h3 style="margin:0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; opacity:0.8;">
+              Levels in Portal (Order)
+            </h3>
+            <div
+              id="portalEditorSelected"
+              style="max-height: 260px; overflow-y: auto; border-radius: 8px; border: 1px solid rgba(148,163,184,0.4); padding: 8px;"
+            >
+              <!-- JS will render -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div style="display:flex; justify-content:flex-end; gap: 8px;">
+          <button id="portalEditorCancel" class="menu-btn">
+            Cancel
+          </button>
+          <button id="portalEditorSave" class="menu-btn" style="border-color:#22c55e; background:#14532d; color:#bbf7d0;">
+            Save Portal
+          </button>
+        </div>
+      </div>
     </div>
 
         <!-- CREATOR SCREEN -->
@@ -382,10 +458,16 @@
     Tools
   </h3>
   <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
-    <button id="toolSelect" class="tool-btn tool-btn-active">Select / Move</button>
-    <button id="toolWall" class="tool-btn">Walls</button>
-    <button id="toolSpawn" class="tool-btn">Player Spawn</button>
-    <button id="toolPortal" class="tool-btn">Portal</button>
+<button id="toolSelect" class="tool-btn tool-btn-active">Select / Move</button>
+<button id="toolWall" class="tool-btn">Wall</button>
+<button id="toolSpawn" class="tool-btn">Player Spawn</button>
+<button id="toolTrap" class="tool-btn">Trap</button>
+<button id="toolPowerup" class="tool-btn">Powerup</button>
+<button id="toolKey" class="tool-btn">Key</button>          <!-- NEW -->
+<button id="toolDoor" class="tool-btn">Door</button>        <!-- NEW -->
+<button id="toolSwitch" class="tool-btn">Switch</button>    <!-- NEW -->
+<button id="toolEnemy" class="tool-btn">Enemy</button>      <!-- NEW -->
+<button id="toolPortal" class="tool-btn">Portal</button>
 
     <div style="margin-top:10px; font-size:11px; opacity:0.7;">
       Enemies, traps, powerups, and logic tools coming next.
@@ -422,7 +504,6 @@
         maxlength="40"
         style="width: 100%; margin-top: 4px; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
       />
-      <!-- Keep this span in case any existing JS refers to it; we can update it later if needed -->
       <span id="creatorLevelName" style="display:none;">Untitled</span>
     </label>
 
@@ -436,6 +517,49 @@
     </div>
   </div>
 
+  <!-- Placement type controls (what new entities will be) -->
+  <div
+    id="placement-panel"
+    style="margin-top: 10px; font-size: 12px; padding-top: 6px; border-top: 1px solid rgba(148,163,184,0.3);"
+  >
+    <div style="margin-bottom: 4px; opacity:0.8;">
+      <strong>Placement:</strong> (based on active tool)
+    </div>
+
+    <!-- Trap placement type -->
+    <div
+      id="trap-placement-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Trap Type:</span>
+      <select
+        id="trap-placement-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="glue">Glue (slow)</option>
+        <option value="fire">Fire</option>
+        <option value="poison">Poison</option>
+        <option value="spike">Spike</option>
+      </select>
+    </div>
+
+    <!-- Powerup placement type -->
+    <div
+      id="powerup-placement-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Powerup:</span>
+      <select
+        id="powerup-placement-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="speed">Speed</option>
+        <option value="shield">Shield</option>
+        <option value="dash">Dash</option>
+      </select>
+    </div>
+  </div>
+
   <!-- Small help text -->
   <p style="font-size:11px; opacity:0.65; margin-top:12px;">
     As we build the editor, this panel will show details for the selected entity: type, axis, speed, links,
@@ -444,6 +568,80 @@
 
   <!-- Save status line -->
   <div id="creator-save-status" style="font-size: 11px; margin-top: 6px; min-height: 14px;"></div>
+
+  <!-- Selected entity info -->
+  <div
+    id="selected-entity-panel"
+    style="margin-top: 12px; font-size: 12px; padding-top: 8px; border-top: 1px solid rgba(148,163,184,0.3); display:none;"
+  >
+    <div style="margin-bottom: 4px;">
+      <strong>Selected:</strong>
+      <span id="selected-entity-kind">None</span>
+    </div>
+
+    <!-- Trap type row (for selected traps) -->
+    <div
+      id="trap-type-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Trap Type:</span>
+      <select
+        id="trap-type-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="glue">Glue (slow)</option>
+        <option value="fire">Fire</option>
+        <option value="poison">Poison</option>
+        <option value="spike">Spike</option>
+      </select>
+    </div>
+
+    <!-- Powerup type row (for selected powerups) -->
+    <div
+      id="powerup-type-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Powerup:</span>
+      <select
+        id="powerup-type-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="speed">Speed</option>
+        <option value="shield">Shield</option>
+        <option value="dash">Dash</option>
+      </select>
+    </div>
+
+    <!-- Door type row (for selected doors) -->
+    <div
+      id="door-type-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Door Type:</span>
+      <select
+        id="door-type-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="key">Key Door</option>
+        <option value="switch">Switch Door</option>
+      </select>
+    </div>
+
+    <!-- Door ID row (for switch doors) -->
+    <div
+      id="door-id-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Door ID:</span>
+      <input
+        id="door-id-input"
+        type="text"
+        maxlength="10"
+        placeholder="D1"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+  </div>
 
   <!-- Save button -->
   <button
