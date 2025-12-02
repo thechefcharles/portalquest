@@ -153,11 +153,43 @@ function buildLevelSelectList() {
 
   levelSelectList.innerHTML = '';
 
+  // ─────────────────────────────
+  // Portal 1 – play all built-in levels in order
+  // ─────────────────────────────
+  const portalBtn = document.createElement('button');
+  portalBtn.className = 'menu-btn';
+  portalBtn.textContent = 'Portal 1 (Play All)';
+  portalBtn.addEventListener('click', () => {
+    // Normal quest run starting from level 0
+    state.customTest = false;
+    state.customLevelName = null;
+    // you can set a flag later if you want to differentiate portals
+    // state.portalName = 'Portal 1';
+
+    // Full quest from the beginning
+    startQuest(state);
+    showQuestScreen();
+  });
+  levelSelectList.appendChild(portalBtn);
+
+  // Optional little spacer / label
+  const sep = document.createElement('div');
+  sep.style.marginTop = '12px';
+  sep.style.fontSize = '12px';
+  sep.style.opacity = '0.7';
+  sep.textContent = 'Play a specific level:';
+  levelSelectList.appendChild(sep);
+
+  // ─────────────────────────────
+  // Individual built-in levels
+  // ─────────────────────────────
   QUEST_LEVELS.forEach((level, index) => {
     const btn = document.createElement('button');
     btn.className = 'menu-btn';
     btn.textContent = `${index + 1}. ${level.name ?? level.id ?? 'Level ' + (index + 1)}`;
     btn.addEventListener('click', () => {
+      state.customTest = false;
+      state.customLevelName = null;
       startQuestAtLevel(state, index);
       showQuestScreen();
     });
@@ -219,6 +251,16 @@ function renderMyLevelsList() {
       renderMyLevelsList();
     });
 
+    const playBtn = document.createElement('button');
+playBtn.className = 'menu-btn';
+playBtn.style.padding = '4px 10px';
+playBtn.textContent = 'Play';
+playBtn.addEventListener('click', () => {
+  playLevelFromMyLevels(lvl.id);   // NEW
+});
+
+    
+    actions.appendChild(playBtn);   
     actions.appendChild(editBtn);
     actions.appendChild(deleteBtn);
     row.appendChild(label);
@@ -268,6 +310,37 @@ function openLevelFromMyLevels(levelId) {
   showCreatorScreen();
 }
 
+function playLevelFromMyLevels(levelId) {
+  const saved = loadLevelById(levelId);
+  if (!saved) return;
+
+  const levelData = saved.data || saved;
+
+  // Mark this as a custom run
+  state.customTest = true;
+  state.customLevelName = saved.name || 'Custom Level';
+
+  // Put the game into quest mode
+  state.mode = 'quest';
+  state.isPaused = false;
+
+  if (!state.quest) {
+    state.quest = {};
+  }
+  state.quest.status = 'playing';
+  state.quest.lives = 3;
+  state.quest.levelIndex = 0;  // single custom level
+
+  // Load custom level into engine
+  loadLevelDataIntoState(state, levelData);
+
+  // Hide My Levels screen and show Quest screen
+  const myLevelsScreen = document.getElementById('myLevelsScreen');
+  if (myLevelsScreen) myLevelsScreen.classList.add('hidden');
+
+  hideAllOverlays();
+  showQuestScreen();
+}
 // ===== Creator UI helpers =====
 function updateDeleteButtonState() {
   if (!creatorDeleteBtn) return;
@@ -318,6 +391,7 @@ if (levelNameInput) {
 if (playQuestBtn) {
   playQuestBtn.addEventListener('click', () => {
     state.customTest = false;
+    state.customLevelName = null;
     showEndTestButton(false);
     startQuest(state);
     showQuestScreen();
@@ -328,6 +402,7 @@ if (playQuestBtn) {
 if (openLevelSelectBtn) {
   openLevelSelectBtn.addEventListener('click', () => {
     state.customTest = false;
+    state.customLevelName = null;
     showEndTestButton(false);
     showLevelSelectScreen();
   });
@@ -357,22 +432,27 @@ if (myLevelsBtn) {
   myLevelsBtn.addEventListener('click', () => {
     renderMyLevelsList();
 
-    const homeScreen = document.getElementById('homeScreen');
+    const homeScreen   = document.getElementById('homeScreen');
+    const questScreen  = document.getElementById('questScreen');
+    const creatorScreen = document.getElementById('creatorScreen');
+    const levelSelectScreen = document.getElementById('levelSelectScreen');
     const myLevelsScreen = document.getElementById('myLevelsScreen');
+
     if (homeScreen) homeScreen.classList.add('hidden');
+    if (questScreen) questScreen.classList.add('hidden');
+    if (creatorScreen) creatorScreen.classList.add('hidden');
+    if (levelSelectScreen) levelSelectScreen.classList.add('hidden');
     if (myLevelsScreen) myLevelsScreen.classList.remove('hidden');
   });
 }
 
-// My Levels → Back to Main Menu
 if (myLevelsBackBtn) {
   myLevelsBackBtn.addEventListener('click', () => {
     const myLevelsScreen = document.getElementById('myLevelsScreen');
     if (myLevelsScreen) myLevelsScreen.classList.add('hidden');
-    showMainMenu();
+    showMainMenu(); // this already handles showing the home screen
   });
 }
-
 // Creator → Back to main menu
 if (creatorBackBtn) {
   creatorBackBtn.addEventListener('click', () => {
@@ -459,14 +539,14 @@ if (creatorPlaytestBtn) {
     }
 
     // If already testing → this click means RESTART
-    state.customTest = true;
-    state.mode = 'creator';
-    state.isPaused = false;
-    state.quest.status = 'playing';
-    state.quest.lives = 3;
+  state.customTest = true;
+  state.mode = 'creator';
+  state.isPaused = false;
+  state.quest.status = 'playing';
+  state.quest.lives = 3;
 
-    // Reload level into engine state (restart)
-    loadLevelDataIntoState(state, editorState.currentLevel);
+  state.lastTestLevelData = editorState.currentLevel;   // NEW
+  loadLevelDataIntoState(state, editorState.currentLevel);
 
     editorState.isTesting = true;
     editorState.selectedEntity = null;
@@ -513,6 +593,7 @@ if (restartQuestBtn) {
 if (backToMenuBtn) {
   backToMenuBtn.addEventListener('click', () => {
     state.customTest = false;
+      state.customLevelName = null;
     showEndTestButton(false);
 
     showMainMenu();

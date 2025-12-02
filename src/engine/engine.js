@@ -163,28 +163,41 @@ function updatePlayerMovementAndWalls(state, dt) {
 
 function checkPortal(state) {
   const portal = state.portal;
-  if (!portal) return; // NEW: guard if level forgot to define a portal
+  if (!portal) return;
 
   const player = state.player;
   const px = player.x + player.w / 2;
   const py = player.y + player.h / 2;
 
   const distToPortal = distance(px, py, portal.x, portal.y);
+  if (distToPortal >= portal.r) return;
 
-if (distToPortal < portal.r) {
-  if (state.customTest) {
-    // In-editor test: restart the current level
-    if (state.currentLevel) {
-      loadLevelDataIntoState(state, state.currentLevel);
-      state.quest.status = 'playing';
+  const inCreatorTest = state.mode === "creator" && state.customTest;
+  const inQuest = state.mode === "quest";
+
+  // 1) CREATOR TEST MODE – restart the same level
+  if (inCreatorTest) {
+    if (state.lastTestLevelData) {
+      loadLevelDataIntoState(state, state.lastTestLevelData);
+      state.quest.status = "playing";
       state.gameOver = false;
       state.gameWon = false;
     }
-  } else if (state.mode === "quest") {
-    // normal quest behavior (advance or questComplete)
-    // advanceQuestLevel(state);  // whatever you already had
-  } else {
-    state.gameWon = true;
+    return;
   }
-}
+
+  // 2) QUEST MODE – built-in or custom level
+  if (inQuest && state.quest) {
+    // If this is a single custom level run (My Levels → Play),
+    // or a normal quest level, we just mark the level complete.
+    // Your existing UI (handleQuestStatusForUI) will:
+    //  - show the Level Complete overlay
+    //  - let "Next Level" button call advanceQuestLevel(state)
+    state.gameWon = true;
+    state.quest.status = "levelComplete";
+    return;
+  }
+
+  // 3) Fallback – any other mode: just mark win
+  state.gameWon = true;
 }

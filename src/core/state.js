@@ -19,6 +19,7 @@ export function createGameState() {
 
     // NEW: custom test flag (for Creator playtest)
     customTest: false,
+    customLevelName: null,
 
     // Quest-specific state
     quest: {
