@@ -5,7 +5,13 @@ import { renderGame } from './renderer/renderGame.js';
 import { updateHUDDom } from './ui/hudDom.js';
 import { tryDash } from './engine/systems/dashSystem.js';
 
-import { editorState, startNewLevel, setActiveTool } from './editor/editorState.js';
+import {
+  editorState,
+  startNewLevel,
+  setActiveTool,
+  setLevelName,              // NEW
+  buildLevelPayloadForSave,  // NEW
+} from './editor/editorState.js';
 import { renderEditor } from './editor/editorRenderer.js';
 import {
   placeWallAtGrid,
@@ -47,6 +53,12 @@ import {
   advanceQuestLevel,
 } from './modes/questMode.js';
 import { validateLevel } from './core/levelValidator.js';
+import {
+  upsertLevel,
+  loadAllLevels,      // NEW
+  loadLevelById,      // NEW
+  deleteLevelById,    // NEW
+} from './core/levelStorage.js';
 
 // ===== Canvas Setup =====
 const canvas = document.getElementById('game');
@@ -69,6 +81,16 @@ const creatorNewBtn = document.getElementById('btnCreatorNew');
 const creatorPlaytestBtn = document.getElementById('btnCreatorPlaytest'); // not used yet
 const creatorDeleteBtn = document.getElementById('btnCreatorDelete');
 const endTestBtn = document.getElementById('btnEndTest');
+
+const myLevelsBtn = document.getElementById('btnMyLevels');       // NEW
+const myLevelsBackBtn = document.getElementById('btnMyLevelsBack'); // NEW
+const myLevelsList = document.getElementById('myLevelsList');     // NEW
+
+// NEW: Creator meta UI
+const levelNameInput = document.getElementById('level-name-input');
+const saveLevelBtn = document.getElementById('save-level-btn');
+const creatorSaveStatusEl = document.getElementById('creator-save-status');
+const creatorLevelNameLabel = document.getElementById('creatorLevelName');
 
 
 const restartLevelBtn = document.getElementById('btnRestartLevel');
@@ -107,6 +129,24 @@ function updateCreatorStatusFromLevel() {
   }
 }
 
+// NEW: Keep the Level Info panel + input in sync with editorState.currentLevel.name
+function syncCreatorNameUI() {
+  const lvl = editorState.currentLevel;
+
+  // NEW: Only fall back when name is truly missing, not empty string
+  const name =
+    (lvl && typeof lvl.name === "string")
+      ? lvl.name
+      : "Untitled";
+        
+  if (creatorLevelNameLabel) {
+    creatorLevelNameLabel.textContent = name;
+  }
+  if (levelNameInput && levelNameInput.value !== name) {
+    levelNameInput.value = name;
+  }
+}
+
 // ===== Level Select Builder =====
 function buildLevelSelectList() {
   if (!levelSelectList) return;
@@ -127,6 +167,106 @@ function buildLevelSelectList() {
 
 // Build level list once at boot
 buildLevelSelectList();
+
+
+// ===== My Levels Builder =====
+function renderMyLevelsList() {
+  if (!myLevelsList) return;
+
+  const levels = loadAllLevels();
+
+  if (!levels.length) {
+    myLevelsList.innerHTML = `
+      <div style="font-size:13px; opacity:0.8;">
+        No saved levels yet. Create one in the Level Creator and hit "Save Level".
+      </div>
+    `;
+    return;
+  }
+
+  myLevelsList.innerHTML = '';
+
+  levels.forEach((lvl) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.gap = '8px';
+
+    const label = document.createElement('div');
+    label.textContent = lvl.name || 'Untitled Level';
+    label.style.fontSize = '14px';
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.gap = '6px';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'menu-btn';
+    editBtn.style.padding = '4px 10px';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', () => {
+      openLevelFromMyLevels(lvl.id);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'menu-btn';
+    deleteBtn.style.padding = '4px 10px';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => {
+      if (!confirm('Delete this level?')) return;
+      deleteLevelById(lvl.id);
+      renderMyLevelsList();
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    row.appendChild(label);
+    row.appendChild(actions);
+    myLevelsList.appendChild(row);
+  });
+}
+
+function openLevelFromMyLevels(levelId) {
+  const saved = loadLevelById(levelId);
+  if (!saved) return;
+
+  const data = saved.data || {};
+
+  editorState.currentLevel = {
+    id: saved.id,
+    name: saved.name,
+    mode: data.mode ?? 'quest',
+    width: data.width ?? 800,
+    height: data.height ?? 600,
+    start: data.start ?? { x: 100, y: 500 },
+    portal: data.portal ?? { x: 700, y: 100, r: 20 },
+    obstacles: Array.isArray(data.obstacles) ? data.obstacles : [],
+    enemies: Array.isArray(data.enemies) ? data.enemies : [],
+    powerups: Array.isArray(data.powerups) ? data.powerups : [],
+    traps: Array.isArray(data.traps) ? data.traps : [],
+    keys: Array.isArray(data.keys) ? data.keys : [],
+    doors: Array.isArray(data.doors) ? data.doors : [],
+    switches: Array.isArray(data.switches) ? data.switches : [],
+  };
+
+  editorState.selectedEntity = null;
+  editorState.hover = null;
+  editorState.isTesting = false;
+  state.customTest = false;
+  state.mode = 'creator';
+
+  updateDeleteButtonState();
+  updateCreatorStatusFromLevel();
+  syncCreatorNameUI();
+
+  // Hide My Levels screen and open Creator
+  const myLevelsScreen = document.getElementById('myLevelsScreen');
+  if (myLevelsScreen) {
+    myLevelsScreen.classList.add('hidden');
+  }
+  showCreatorScreen();
+}
 
 // ===== Creator UI helpers =====
 function updateDeleteButtonState() {
@@ -164,6 +304,14 @@ function setToolButtonActive(activeBtn) {
   }
 }
 
+// ===== Level Name Input Binding =====
+if (levelNameInput) {
+  levelNameInput.addEventListener('input', (e) => {
+    setLevelName(e.target.value || '');
+    syncCreatorNameUI();
+  });
+}
+
 // ===== Navigation / Click Handlers =====
 
 // Main menu → Start Quest
@@ -189,7 +337,39 @@ if (openLevelSelectBtn) {
 if (creatorBtn) {
   creatorBtn.addEventListener('click', () => {
     state.mode = 'creator';
+
+    // NEW: if there is no current level yet, start one
+    if (!editorState.currentLevel) {
+      startNewLevel();
+      editorState.selectedEntity = null;
+      editorState.hover = null;
+      updateDeleteButtonState();
+      updateCreatorStatusFromLevel();
+    }
+
+    syncCreatorNameUI();  // NEW
     showCreatorScreen();
+  });
+}
+
+// Main menu → My Levels
+if (myLevelsBtn) {
+  myLevelsBtn.addEventListener('click', () => {
+    renderMyLevelsList();
+
+    const homeScreen = document.getElementById('homeScreen');
+    const myLevelsScreen = document.getElementById('myLevelsScreen');
+    if (homeScreen) homeScreen.classList.add('hidden');
+    if (myLevelsScreen) myLevelsScreen.classList.remove('hidden');
+  });
+}
+
+// My Levels → Back to Main Menu
+if (myLevelsBackBtn) {
+  myLevelsBackBtn.addEventListener('click', () => {
+    const myLevelsScreen = document.getElementById('myLevelsScreen');
+    if (myLevelsScreen) myLevelsScreen.classList.add('hidden');
+    showMainMenu();
   });
 }
 
@@ -217,10 +397,8 @@ if (creatorNewBtn) {
     updateDeleteButtonState();
     updateCreatorStatusFromLevel();
 
-    const nameEl = document.getElementById('creatorLevelName');
-    if (nameEl && editorState.currentLevel) {
-      nameEl.textContent = editorState.currentLevel.name || 'Untitled Level';
-    }
+    // NEW: keep input + label in sync
+    syncCreatorNameUI();
   });
 }
 
@@ -449,6 +627,21 @@ if (questcompleteMainMenuBtn) {
 
 // ===== Keyboard: Movement + Pause + Dash =====
 window.addEventListener('keydown', (e) => {
+  // NEW: If the user is typing in an input/textarea/contentEditable, don't hijack keys
+  const target = e.target;
+  const isTypingTarget =
+    target &&
+    (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable
+    );
+
+  if (isTypingTarget) {
+    // Let the browser handle arrows, space, etc. for text editing
+    return;
+  }
+
   const movementKeys = [
     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
     'w', 'a', 's', 'd', 'W', 'A', 'S', 'D',
@@ -631,6 +824,55 @@ if (editorCanvas) {
       }
     }
   });
+}
+
+// ===== Save Level Button =====
+if (saveLevelBtn) {
+  saveLevelBtn.addEventListener('click', () => {
+    if (!editorState.currentLevel) {
+      showSaveStatus('No level to save.', true);
+      return;
+    }
+
+    const issues = validateLevel(editorState.currentLevel);
+    if (issues.length > 0) {
+      updateCreatorStatusFromLevel();
+      showSaveStatus(`Fix ${issues.length} issue(s) before saving.`, true);
+      return;
+    }
+
+    const payload = buildLevelPayloadForSave();
+    if (!payload) {
+      showSaveStatus('Unable to build level payload.', true);
+      return;
+    }
+
+    const saved = upsertLevel(payload);
+    if (!saved) {
+      showSaveStatus('Save failed.', true);
+      return;
+    }
+
+    // Ensure currentLevel reflects whatever storage returns
+    if (editorState.currentLevel) {
+      editorState.currentLevel.id = saved.id;
+      editorState.currentLevel.name = saved.name;
+    }
+    syncCreatorNameUI();
+    showSaveStatus('Level saved ✔', false);
+  });
+}
+
+// NEW: helper for the little status line under Save Level
+function showSaveStatus(message, isError = false) {
+  if (!creatorSaveStatusEl) return;
+  creatorSaveStatusEl.textContent = message;
+  creatorSaveStatusEl.style.color = isError ? '#ef4444' : '#4ade80';
+
+  clearTimeout(creatorSaveStatusEl._timeoutId);
+  creatorSaveStatusEl._timeoutId = setTimeout(() => {
+    creatorSaveStatusEl.textContent = '';
+  }, 2500);
 }
 
 // ===== Game Loop =====

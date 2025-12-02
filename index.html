@@ -298,12 +298,13 @@
         <div class="menu-subtitle">
           Dodge enemies, dodge traps, unlock doors, and reach the portal.
         </div>
-    <div class="menu-buttons">
-      <button id="btnPlayQuest" class="menu-btn">Play Quest</button>
-      <button id="btnLevelSelect" class="menu-btn">Level Select</button>
-      <button id="btnCreator" class="menu-btn">Level Creator</button>
-      <button id="btnQuit" class="menu-btn">Quit</button>
-    </div>
+<div class="menu-buttons">
+  <button id="btnPlayQuest" class="menu-btn">Play Quest</button>
+  <button id="btnLevelSelect" class="menu-btn">Level Select</button>
+  <button id="btnCreator" class="menu-btn">Level Creator</button>
+  <button id="btnMyLevels" class="menu-btn">My Levels</button>
+  <button id="btnQuit" class="menu-btn">Quit</button>
+</div>
       </div>
     </div>
 
@@ -319,6 +320,25 @@
         </div>
         <div id="levelSelectList" class="menu-buttons" style="margin-bottom: 12px;"></div>
         <button id="btnLevelSelectBack" class="menu-btn">Back to Main Menu</button>
+      </div>
+    </div>
+
+        <!-- MY LEVELS SCREEN -->
+    <div
+      id="myLevelsScreen"
+      class="screen hidden"
+    >
+      <div class="menu-card">
+        <div class="menu-title">My Levels</div>
+        <div class="menu-subtitle">
+          Edit or delete your custom levels.
+        </div>
+
+        <div id="myLevelsList" class="menu-buttons" style="margin-bottom: 12px;">
+          <!-- JS will render saved levels here -->
+        </div>
+
+        <button id="btnMyLevelsBack" class="menu-btn">Back to Main Menu</button>
       </div>
     </div>
 
@@ -378,15 +398,49 @@
   <h3 style="margin-top:0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity:0.8;">
     Level Info
   </h3>
+
+  <!-- Level name + mode + status -->
   <div style="font-size: 13px; opacity: 0.9;">
-    <div><strong>Name:</strong> <span id="creatorLevelName">Untitled</span></div>
-    <div><strong>Mode:</strong> Creator</div>
-    <div><strong>Status:</strong> <span id="creatorStatus">Empty level</span></div>
+    <label style="display:block; margin-bottom: 8px; font-size: 12px;">
+      Level Name:
+      <input
+        id="level-name-input"
+        type="text"
+        placeholder="My First Level"
+        maxlength="40"
+        style="width: 100%; margin-top: 4px; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+      <!-- Keep this span in case any existing JS refers to it; we can update it later if needed -->
+      <span id="creatorLevelName" style="display:none;">Untitled</span>
+    </label>
+
+    <div style="margin-bottom: 4px;">
+      <strong>Mode:</strong> Creator
+    </div>
+
+    <div>
+      <strong>Status:</strong>
+      <span id="creatorStatus">Empty level</span>
+    </div>
   </div>
+
+  <!-- Small help text -->
   <p style="font-size:11px; opacity:0.65; margin-top:12px;">
     As we build the editor, this panel will show details for the selected entity: type, axis, speed, links,
     etc.
   </p>
+
+  <!-- Save status line -->
+  <div id="creator-save-status" style="font-size: 11px; margin-top: 6px; min-height: 14px;"></div>
+
+  <!-- Save button -->
+  <button
+    id="save-level-btn"
+    class="quest-btn"
+    style="margin-top: 8px;"
+  >
+    Save Level
+  </button>
 
   <!-- Delete Selected button -->
   <button
