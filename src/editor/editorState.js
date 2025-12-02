@@ -51,7 +51,7 @@ export function setActiveTool(toolName) {
  */
 export function setLevelName(name) {
   if (!editorState.currentLevel) return;
-  editorState.currentLevel.name = name || '';
+  editorState.currentLevel.name = typeof name === 'string' ? name : '';
 }
 
 /**
@@ -61,32 +61,42 @@ export function setLevelName(name) {
  * {
  *   id: string | null,
  *   name: string,
- *   data: { ...level fields... }
+ *   data: { ...full level data... }
  * }
  */
 export function buildLevelPayloadForSave() {
   const lvl = editorState.currentLevel;
   if (!lvl) return null;
 
-  // Normalize arrays so saves are consistent
+  // Copy everything *except* id and name into data
+  const { id, name, ...rest } = lvl;
+  const base = { ...rest };
+
+  // Start with all existing fields, then enforce defaults
   const data = {
-    mode: lvl.mode ?? 'quest',
-    width: lvl.width ?? 800,
-    height: lvl.height ?? 600,
-    start: lvl.start ?? { x: 100, y: 500 },
-    portal: lvl.portal ?? { x: 700, y: 100, r: 20 },
-    obstacles: Array.isArray(lvl.obstacles) ? lvl.obstacles : [],
-    enemies: Array.isArray(lvl.enemies) ? lvl.enemies : [],
-    powerups: Array.isArray(lvl.powerups) ? lvl.powerups : [],
-    traps: Array.isArray(lvl.traps) ? lvl.traps : [],
-    keys: Array.isArray(lvl.keys) ? lvl.keys : [],
-    doors: Array.isArray(lvl.doors) ? lvl.doors : [],
-    switches: Array.isArray(lvl.switches) ? lvl.switches : [],
+    // Everything that was on currentLevel
+    ...base,
+
+    // Core defaults
+    mode: base.mode ?? 'quest',
+    width: typeof base.width === 'number' ? base.width : 800,
+    height: typeof base.height === 'number' ? base.height : 600,
+    start: base.start ?? { x: 100, y: 500 },
+    portal: base.portal ?? { x: 700, y: 100, r: 20 },
+
+    obstacles: Array.isArray(base.obstacles) ? base.obstacles : [],
+    enemies: Array.isArray(base.enemies) ? base.enemies : [],
+    powerups: Array.isArray(base.powerups) ? base.powerups : [],
+    traps: Array.isArray(base.traps) ? base.traps : [],
+    keys: Array.isArray(base.keys) ? base.keys : [],
+    doors: Array.isArray(base.doors) ? base.doors : [],
+    switches: Array.isArray(base.switches) ? base.switches : [],
   };
 
   return {
-    id: lvl.id ?? null,
-    name: (lvl.name && lvl.name.trim()) || 'Untitled Level',
+    id: id ?? null,
+    // Leave empty string as-is; storage layer can decide how to default
+    name: typeof name === 'string' ? name : '',
     data,
   };
 }
@@ -101,33 +111,43 @@ export function buildLevelPayloadForSave() {
 export function loadLevelFromSave(saved) {
   if (!saved) return;
 
-  const data = saved.data || saved; // support both {id,name,data} and raw
+  const src = saved.data || saved; // support both {id,name,data} and raw
+  const base = { ...src };
 
   const id =
     saved.id ??
-    data.id ??
-    ('custom-' + Date.now());
+    base.id ??
+    'custom-' + Date.now();
 
   const name =
-    (saved.name ??
-      data.name ??
-      'Untitled Level');
+    typeof saved.name === 'string'
+      ? saved.name
+      : typeof base.name === 'string'
+        ? base.name
+        : 'Untitled Level';
 
   editorState.currentLevel = {
+    // Identity
     id,
     name,
-    mode: data.mode ?? 'quest',
-    width: data.width ?? 800,
-    height: data.height ?? 600,
-    start: data.start ?? { x: 100, y: 500 },
-    portal: data.portal ?? { x: 700, y: 100, r: 20 },
-    obstacles: Array.isArray(data.obstacles) ? data.obstacles : [],
-    enemies: Array.isArray(data.enemies) ? data.enemies : [],
-    powerups: Array.isArray(data.powerups) ? data.powerups : [],
-    traps: Array.isArray(data.traps) ? data.traps : [],
-    keys: Array.isArray(data.keys) ? data.keys : [],
-    doors: Array.isArray(data.doors) ? data.doors : [],
-    switches: Array.isArray(data.switches) ? data.switches : [],
+
+    // Copy everything from the saved data
+    ...base,
+
+    // Then enforce defaults for the fields we rely on
+    mode: base.mode ?? 'quest',
+    width: typeof base.width === 'number' ? base.width : 800,
+    height: typeof base.height === 'number' ? base.height : 600,
+    start: base.start ?? { x: 100, y: 500 },
+    portal: base.portal ?? { x: 700, y: 100, r: 20 },
+
+    obstacles: Array.isArray(base.obstacles) ? base.obstacles : [],
+    enemies: Array.isArray(base.enemies) ? base.enemies : [],
+    powerups: Array.isArray(base.powerups) ? base.powerups : [],
+    traps: Array.isArray(base.traps) ? base.traps : [],
+    keys: Array.isArray(base.keys) ? base.keys : [],
+    doors: Array.isArray(base.doors) ? base.doors : [],
+    switches: Array.isArray(base.switches) ? base.switches : [],
   };
 
   // Reset editor UI state
