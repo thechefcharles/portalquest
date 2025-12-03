@@ -119,6 +119,75 @@
     box-shadow: 0 0 8px rgba(56,189,248,0.6);
   }
 
+  .tool-section {
+    margin-top: 6px;
+    margin-bottom: 6px;
+  }
+
+  .tool-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    opacity: 0.65;
+    margin-bottom: 4px;
+  }
+
+  .tool-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  /* Override .tool-btn to be smaller and more "pill" like */
+  .tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    padding: 4px 6px;
+    border-radius: 9px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: #020617;
+    color: #e5e7eb;
+    font-size: 11px;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.05s ease;
+  }
+
+  .tool-btn:hover {
+    background: #0b1120;
+    border-color: #38bdf8;
+    box-shadow: 0 0 8px rgba(56,189,248,0.35);
+    transform: translateY(-1px);
+  }
+
+  .tool-btn-active {
+    border-color: #38bdf8;
+    background: #020617;
+    box-shadow: 0 0 8px rgba(56,189,248,0.6);
+  }
+
+  .tool-btn .tool-pill-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .tool-btn .tool-pill-label {
+    font-size: 11px;
+    opacity: 0.95;
+  }
+
+  .tool-btn .tool-pill-sub {
+    font-size: 9px;
+    opacity: 0.7;
+  }
+  
   /* Danger/Delete button for Creator */
   .danger-btn {
     width: 100%;
@@ -452,26 +521,117 @@
 
         <!-- Body layout -->
         <div style="display:grid; grid-template-columns: 220px 1fr 260px; gap: 16px; min-height: 420px;">
-          <!-- Toolbox -->
-<aside style="background: rgba(15,23,42,0.9); border-radius: 12px; padding: 12px; border: 1px solid rgba(148,163,184,0.4);">
-  <h3 style="margin-top:0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity:0.8;">
-    Tools
+<!-- Toolbox -->
+<aside
+  style="
+    background: rgba(15,23,42,0.9);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid rgba(148,163,184,0.4);
+  "
+>
+  <h3
+    style="
+      margin-top: 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      opacity: 0.8;
+    "
+  >
+    Level Palette
   </h3>
-  <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
-<button id="toolSelect" class="tool-btn tool-btn-active">Select / Move</button>
-<button id="toolWall" class="tool-btn">Wall</button>
-<button id="toolSpawn" class="tool-btn">Player Spawn</button>
-<button id="toolTrap" class="tool-btn">Trap</button>
-<button id="toolPowerup" class="tool-btn">Powerup</button>
-<button id="toolKey" class="tool-btn">Key</button>          <!-- NEW -->
-<button id="toolDoor" class="tool-btn">Door</button>        <!-- NEW -->
-<button id="toolSwitch" class="tool-btn">Switch</button>    <!-- NEW -->
-<button id="toolEnemy" class="tool-btn">Enemy</button>      <!-- NEW -->
-<button id="toolPortal" class="tool-btn">Portal</button>
 
-    <div style="margin-top:10px; font-size:11px; opacity:0.7;">
-      Enemies, traps, powerups, and logic tools coming next.
+  <!-- Hidden Select button (still used by JS, just not visible) -->
+  <button
+    id="toolSelect"
+    class="tool-btn tool-btn-active"
+    style="display:none;"
+  >
+    Select / Move
+  </button>
+
+  <!-- BUILD -->
+  <div class="tool-section">
+    <div class="tool-section-title">Build</div>
+    <div class="tool-grid">
+      <!-- Wall -->
+      <button id="toolWall" class="tool-btn" data-tooltip="Solid wall">
+        <div class="tool-pill-icon">🧱</div>
+        <div class="tool-pill-label">Wall</div>
+      </button>
+
+      <!-- Gate (Door: key or switch, configured on the right) -->
+      <button id="toolDoor" class="tool-btn" data-tooltip="Gate (Key or Switch)">
+        <div class="tool-pill-icon">🚪</div>
+        <div class="tool-pill-label">Gate</div>
+        <div class="tool-pill-sub">
+          <span>Key Gate</span> • <span>Switch Gate</span>
+        </div>
+      </button>
     </div>
+  </div>
+
+  <!-- ITEMS -->
+  <div class="tool-section">
+    <div class="tool-section-title">Items</div>
+    <div class="tool-grid">
+      <button id="toolKey" class="tool-btn" data-tooltip="Key (by Key ID)">
+        <div class="tool-pill-icon">🔑</div>
+        <div class="tool-pill-label">Key</div>
+      </button>
+
+      <button id="toolSwitch" class="tool-btn" data-tooltip="Floor switch">
+        <div class="tool-pill-icon">🎚️</div>
+        <div class="tool-pill-label">Switch</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- POWERUPS -->
+  <div class="tool-section">
+    <div class="tool-section-title">Powerups</div>
+    <div class="tool-grid">
+      <button id="toolPowerup" class="tool-btn" data-tooltip="Speed / Dash / Shield">
+        <div class="tool-pill-icon">✨</div>
+        <div class="tool-pill-label">Powerup</div>
+        <div class="tool-pill-sub">
+          <span>Speed</span> • <span>Dash</span> • <span>Shield</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- TRAPS -->
+  <div class="tool-section">
+    <div class="tool-section-title">Traps</div>
+    <div class="tool-grid">
+      <button id="toolTrap" class="tool-btn" data-tooltip="Poison / Fire / Glue / Spike">
+        <div class="tool-pill-icon">⚠️</div>
+        <div class="tool-pill-label">Trap</div>
+        <div class="tool-pill-sub">
+          <span>Poison</span> • <span>Fire</span> • <span>Glue</span> • <span>Spike</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ENEMIES -->
+  <div class="tool-section">
+    <div class="tool-section-title">Enemies</div>
+    <div class="tool-grid">
+      <button id="toolEnemy" class="tool-btn" data-tooltip="Patrol / Chaser / Spinner">
+        <div class="tool-pill-icon">👾</div>
+        <div class="tool-pill-label">Enemy</div>
+        <div class="tool-pill-sub">
+          <span>Patrol</span> • <span>Chaser</span> • <span>Spinner</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
+    Click a tool to place one object. After placing, you’ll return to Move mode.
   </div>
 </aside>
 

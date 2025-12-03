@@ -205,11 +205,13 @@ export function deleteSelectedEntity() {
 
   switch (sel.kind) {
     case "spawn":
-      level.start = null;
+      console.warn("[Editor] Player spawn cannot be deleted.");
       break;
+
     case "portal":
-      level.portal = null;
+      console.warn("[Editor] Portal cannot be deleted.");
       break;
+
     case "obstacle": {
       const arr = level.obstacles || [];
       if (sel.index >= 0 && sel.index < arr.length) arr.splice(sel.index, 1);

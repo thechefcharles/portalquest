@@ -1951,6 +1951,13 @@ if (editorCanvas) {
   });
 }
 
+function returnToSelectTool() {
+  setActiveTool('select');
+  if (toolSelectBtn) setToolButtonActive(toolSelectBtn);
+  editorState.hover = null;
+  updatePlacementPanelForTool();
+}
+
 // ===== Editor Mouse Input: click to place or select+move =====
 if (editorCanvas) {
   editorCanvas.addEventListener('mousedown', (e) => {
@@ -1974,6 +1981,7 @@ if (editorCanvas) {
       if (!canPlaceWallAtGrid(level, gridX, gridY)) return;
       placeWallAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
 
     } else if (tool === 'spawn') {
       const gridX = Math.floor(x / GRID_SIZE);
@@ -1981,6 +1989,7 @@ if (editorCanvas) {
       if (!canPlaceSpawnAtGrid(level, gridX, gridY)) return;
       placeSpawnAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
 
     } else if (tool === 'portal') {
       const gridX = Math.floor(x / GRID_SIZE);
@@ -1988,6 +1997,7 @@ if (editorCanvas) {
       if (!canPlacePortalAtGrid(level, gridX, gridY)) return;
       placePortalAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
 
     } else if (tool === 'trap') {
       const gridX = Math.floor(x / GRID_SIZE);
@@ -1996,6 +2006,7 @@ if (editorCanvas) {
       const trapType = editorState.activeTrapType || 'fire';
       placeTrapAtGrid(gridX, gridY, trapType);
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
 
     } else if (tool === 'powerup') {
       const gridX = Math.floor(x / GRID_SIZE);
@@ -2004,6 +2015,7 @@ if (editorCanvas) {
       const powerType = editorState.activePowerupType || 'speed';
       placePowerupAtGrid(gridX, gridY, powerType);
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
 
     } else if (tool === 'key') {
       const gridX = Math.floor(x / GRID_SIZE);
@@ -2011,14 +2023,15 @@ if (editorCanvas) {
       if (!canPlaceKeyAtGrid(level, gridX, gridY)) return;
       placeKeyAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
 
     } else if (tool === 'door') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
       if (!canPlaceDoorAtGrid(level, gridX, gridY)) return;
-      // default door type is "key" (can change later in inspector)
       placeDoorAtGrid(gridX, gridY, 'key');
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
 
     } else if (tool === 'switch') {
       const gridX = Math.floor(x / GRID_SIZE);
@@ -2026,14 +2039,15 @@ if (editorCanvas) {
       if (!canPlaceSwitchAtGrid(level, gridX, gridY)) return;
       placeSwitchAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
 
     } else if (tool === 'enemy') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
       if (!canPlaceEnemyAtGrid(level, gridX, gridY)) return;
-      // default enemy type is patrol; we’ll add type controls next
       placeEnemyAtGrid(gridX, gridY, 'patrol');
       updateCreatorStatusFromLevel();
+      returnToSelectTool();
       
     } else if (tool === 'select') {
       const hit = findEntityAtPixel(x, y);
