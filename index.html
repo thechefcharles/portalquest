@@ -354,6 +354,67 @@
   .overlay-panel button {
     margin: 6px;
   }
+  /* --- Home layout refinements --- */
+
+.home-layout {
+  max-width: 900px;
+}
+
+.home-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.home-section {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 12px;
+  padding: 12px 12px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  text-align: left;
+}
+
+.section-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+  margin: 0 0 4px;
+}
+
+.section-caption {
+  font-size: 11px;
+  opacity: 0.7;
+  margin: 0 0 8px;
+}
+
+.primary-btn {
+  border-color: #22c55e;
+  background: #14532d;
+  color: #bbf7d0;
+}
+
+.primary-btn:hover {
+  background: #166534;
+}
+
+.ghost-btn {
+  border-color: #4b5563;
+  background: transparent;
+  color: #e5e7eb;
+}
+
+.ghost-btn:hover {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.home-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 </style>
 
 </head>
@@ -361,21 +422,91 @@
 <body>
   <div id="app">
     <!-- MAIN MENU -->
-    <div id="homeScreen" class="screen">
-      <div class="menu-card">
-        <div class="menu-title">PORTALQUEST</div>
-        <div class="menu-subtitle">
-          Dodge enemies, dodge traps, unlock doors, and reach the portal.
+<div id="homeScreen" class="screen">
+  <div class="menu-card home-layout">
+    <h1 class="menu-title">PORTALQUEST</h1>
+    <p class="menu-subtitle">
+      Dodge enemies, outsmart traps, unlock gates, and beat entire portals.
+    </p>
+
+    <div class="home-columns">
+      <!-- PLAY COLUMN -->
+      <section class="home-section">
+        <h2 class="section-title">Play</h2>
+        <p class="section-caption">Jump into official or custom portals.</p>
+
+        <div class="menu-buttons">
+          <!-- Already wired in main.js -->
+          <button id="btnPlayQuest" class="menu-btn primary-btn">
+            Quest Mode (Official)
+          </button>
+
+          <!-- Already wired: level select for official quest -->
+          <button id="btnLevelSelect" class="menu-btn">
+            Quest Level Select
+          </button>
+
+          <!-- NEW: will later open a "My Portals" play screen -->
+          <button id="btnPlayMyPortals" class="menu-btn">
+            My Portals
+          </button>
+
+          <!-- NEW: will later open an "Imported Portals" screen -->
+          <button id="btnPlayImportedPortals" class="menu-btn">
+            Imported Portals
+          </button>
         </div>
-<div class="menu-buttons">
-  <button id="btnPlayQuest" class="menu-btn">Play Quest</button>
-  <button id="btnLevelSelect" class="menu-btn">Level Select</button>
-  <button id="btnCreator" class="menu-btn">Level Creator</button>
-  <button id="btnMyLevels" class="menu-btn">My Levels</button>
-  <button id="btnQuit" class="menu-btn">Quit</button>
-</div>
-      </div>
+      </section>
+
+      <!-- CREATE COLUMN -->
+      <section class="home-section">
+        <h2 class="section-title">Create</h2>
+        <p class="section-caption">Build brutal levels and full portals.</p>
+
+        <div class="menu-buttons">
+          <!-- Already wired: opens creator -->
+          <button id="btnCreator" class="menu-btn">
+            Level Creator
+          </button>
+
+          <!-- Already wired: opens My Levels screen -->
+          <button id="btnMyLevels" class="menu-btn">
+            My Levels
+          </button>
+
+          <!-- NEW: shortcut to portal editor / My Portals management -->
+          <button id="btnManagePortals" class="menu-btn">
+            My Portals (Edit)
+          </button>
+        </div>
+      </section>
+
+      <!-- SHARE COLUMN -->
+      <section class="home-section">
+        <h2 class="section-title">Share</h2>
+        <p class="section-caption">Trade levels & portals with friends.</p>
+
+        <div class="menu-buttons">
+          <!-- NEW: will open Import Portal (file picker) -->
+          <button id="btnImportPortal" class="menu-btn">
+            Import Portal
+          </button>
+
+          <!-- NEW: will open Import Level (file picker) -->
+          <button id="btnImportLevel" class="menu-btn">
+            Import Level
+          </button>
+        </div>
+      </section>
     </div>
+
+    <div class="home-footer">
+      <button id="btnQuit" class="menu-btn ghost-btn">
+        Quit
+      </button>
+    </div>
+  </div>
+</div>
 
     <!-- LEVEL SELECT SCREEN -->
     <div
