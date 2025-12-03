@@ -1,4 +1,3 @@
-// src/ui/hudDom.js
 // Update HUD DOM elements based on GameState
 
 const hudLevel = document.getElementById("hudLevel");
@@ -12,19 +11,26 @@ const hudStatus = document.getElementById("hudStatus");
 export function updateHUDDom(state) {
   const { player } = state;
 
-  // Level: show 1-based index
-  if (state.currentLevelIndex != null) {
+  // ===== LEVEL DISPLAY =====
+  if (state.customTest && state.customLevelName) {
+    // Playing a custom level → show its name
+    hudLevel.textContent = state.customLevelName;
+  } else if (state.currentLevelIndex != null) {
+    // Normal built-in quest mode → show numeric level
     hudLevel.textContent = String(state.currentLevelIndex + 1);
   } else {
+    // Unknown / missing
     hudLevel.textContent = "-";
   }
 
+  // ===== CORE HUD =====
   hudLives.textContent = String(state.lives ?? 3);
   hudHealth.textContent = String(Math.round(player.health));
   hudScore.textContent = String(state.score ?? 0);
   hudDash.textContent = String(player.dashCharges ?? 0);
   hudKey.textContent = state.hasKey ? "YES" : "NO";
 
+  // ===== STATUS EFFECTS =====
   const statusPieces = [];
 
   if (player.speedBoostTimer > 0) statusPieces.push("SPEED");

@@ -2,10 +2,26 @@
 import { rectOverlap, circleOverlap, rectCircleOverlap } from "./geometry.js";
 
 /**
- * Returns an array of human-readable overlap issues for a LevelData
+ * Returns an array of human-readable issues for a LevelData:
+ *  - missing spawn / portal
+ *  - overlaps between entities
  */
 export function validateLevel(level) {
   const issues = [];
+
+  if (!level) {
+    issues.push("No level data provided");
+    return issues;
+  }
+
+  // ----- Basic presence checks -----
+  if (!level.start) {
+    issues.push("Missing player spawn (level.start)");
+  }
+
+  if (!level.portal) {
+    issues.push("Missing portal (level.portal)");
+  }
 
   const rects = [];
   const circles = [];
@@ -119,14 +135,15 @@ export function validateLevel(level) {
 
 /**
  * Dev helper: throw or log loudly if level is invalid.
+ * Used for built-in quest levels.
  */
 export function assertLevelValid(level, label = "Level") {
   const issues = validateLevel(level);
   if (issues.length === 0) return;
 
-  console.error(`${label} has ${issues.length} overlap issue(s):`);
+  console.error(`${label} has ${issues.length} issue(s):`);
   issues.forEach((msg) => console.error("  -", msg));
 
   // If you want to *hard stop* during dev, uncomment:
-  // throw new Error(`${label} has invalid overlaps`);
+  // throw new Error(`${label} has invalid issues`);
 }

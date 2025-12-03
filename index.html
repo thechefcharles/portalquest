@@ -1,615 +1,1154 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>PortalQuest</title>
-    <style>
-      body {
-        margin: 0;
-        height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: stretch;
-        background: radial-gradient(circle at top, #1c2541 0%, #0b1020 40%, #020308 100%);
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-        color: #f5f5f5;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <title>PortalQuest v2</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    background: radial-gradient(circle at top, #1c2541 0%, #0b1020 40%, #020308 100%);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    color: #f5f5f5;
+  }
 
-      #appWrapper {
-        width: 100%;
-        max-width: 1200px;
-        padding: 16px;
-        box-sizing: border-box;
-      }
+  #app {
+    width: 100%;
+    max-width: 1200px;
+    padding: 16px;
+    box-sizing: border-box;
+  }
 
-      /* MAIN MENU */
-      #homeScreen {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-      }
+  /* Utility */
+  .hidden {
+    display: none !important;
+  }
 
-      .menu-card {
-        background: rgba(3, 7, 18, 0.9);
-        padding: 32px 40px;
-        border-radius: 18px;
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
-        text-align: center;
-        max-width: 480px;
-        margin: 0 auto;
-      }
+  .screen {
+    height: calc(100vh - 32px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-      .menu-title {
-        font-size: 32px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        margin: 0 0 10px;
-      }
+  /* MAIN MENU */
 
-      .menu-subtitle {
-        font-size: 14px;
-        color: #e5e7eb;
-        opacity: 0.9;
-        margin-bottom: 24px;
-      }
+  #homeScreen {
+    /* inherits .screen layout */
+  }
 
-      .menu-buttons {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-      }
+  .menu-card {
+    background: rgba(3, 7, 18, 0.9);
+    padding: 32px 40px;
+    border-radius: 18px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+    text-align: center;
+    max-width: 480px;
+    margin: 0 auto;
+  }
 
-      .menu-btn {
-        padding: 10px 18px;
-        border-radius: 999px;
-        border: 1px solid transparent;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-      }
+  .menu-title {
+    font-size: 32px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+  }
 
-      #playModeBtn {
-        border-color: #22c55e;
-        background: #14532d;
-        color: #bbf7d0;
-      }
+  .menu-subtitle {
+    font-size: 14px;
+    color: #e5e7eb;
+    opacity: 0.9;
+    margin-bottom: 24px;
+  }
 
-      #playModeBtn:hover {
-        background: #166534;
-      }
+  .menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+  }
 
-      #creatorModeBtn {
-        border-color: #60a5fa;
-        background: #1e3a8a;
-        color: #dbeafe;
-      }
+  .menu-btn {
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+  }
 
-      #creatorModeBtn:hover {
-        background: #1d4ed8;
-      }
+  #btnPlayQuest {
+    border-color: #22c55e;
+    background: #14532d;
+    color: #bbf7d0;
+  }
 
-      /* GAME LAYOUT */
-      #app {
-        display: none; /* hidden until Play or Create is chosen */
-        display: grid;
-        grid-template-columns: 230px 1fr 230px;
-        gap: 16px;
-        height: calc(100vh - 32px);
-      }
+  #btnPlayQuest:hover {
+    background: #166534;
+  }
 
-      #leftPanelPlay,
-      #leftPanelEditor,
-      #rightPanel {
-        background: rgba(3, 7, 18, 0.85);
-        border-radius: 10px;
-        padding: 12px;
-        box-sizing: border-box;
-        box-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
-        overflow-y: auto;
-      }
+  #btnQuit {
+    border-color: #4b5563;
+    background: #111827;
+    color: #e5e7eb;
+  }
 
-      #leftPanelEditor {
-        display: none; /* start with play panel visible */
-      }
+  #btnQuit:hover {
+    background: #1f2937;
+  }
 
-      #centerPanel {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
+  .tool-btn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: #020617;
+    color: #e5e7eb;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
 
-      canvas {
-        border: 2px solid #6ef2ff;
-        background: #050914;
-        box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
-      }
+  .tool-btn:hover {
+    background: #0f172a;
+  }
 
-      h1 {
-        margin: 0 0 8px;
-        font-size: 20px;
-        letter-spacing: 0.05em;
-      }
+  .tool-btn-active {
+    border-color: #38bdf8;
+    background: #0b1120;
+    box-shadow: 0 0 8px rgba(56,189,248,0.6);
+  }
 
-      h2 {
-        font-size: 14px;
-        margin: 12px 0 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        opacity: 0.8;
-      }
+  .tool-section {
+    margin-top: 6px;
+    margin-bottom: 6px;
+  }
 
-      .hud-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 13px;
-        margin-bottom: 4px;
-      }
+  .tool-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    opacity: 0.65;
+    margin-bottom: 4px;
+  }
 
-      #statusText {
-        font-size: 12px;
-        margin-top: 8px;
-        opacity: 0.85;
-      }
+  .tool-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
 
-      #levelButtons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
+  /* Override .tool-btn to be smaller and more "pill" like */
+  .tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    padding: 4px 6px;
+    border-radius: 9px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: #020617;
+    color: #e5e7eb;
+    font-size: 11px;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.05s ease;
+  }
 
-      .level-btn {
-        flex: 1 0 30%;
-        font-size: 12px;
-        padding: 4px 6px;
-        border-radius: 6px;
-        border: 1px solid #4b5563;
-        background: #111827;
-        color: #e5e7eb;
-        cursor: pointer;
-      }
+  .tool-btn:hover {
+    background: #0b1120;
+    border-color: #38bdf8;
+    box-shadow: 0 0 8px rgba(56,189,248,0.35);
+    transform: translateY(-1px);
+  }
 
-      .level-btn.active {
-        background: #2563eb;
-        border-color: #60a5fa;
-      }
+  .tool-btn-active {
+    border-color: #38bdf8;
+    background: #020617;
+    box-shadow: 0 0 8px rgba(56,189,248,0.6);
+  }
 
-      .level-btn:hover {
-        background: #1f2937;
-      }
+  .tool-btn .tool-pill-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
 
-      #resetBtn,
-      .nav-btn {
-        width: 100%;
-        margin-top: 8px;
-        padding: 6px 8px;
-        border-radius: 6px;
-        border: 1px solid #6b7280;
-        background: #111827;
-        color: #e5e7eb;
-        font-size: 13px;
-        cursor: pointer;
-      }
+  .tool-btn .tool-pill-label {
+    font-size: 11px;
+    opacity: 0.95;
+  }
 
-      #resetBtn:hover,
-      .nav-btn:hover {
-        background: #1f2937;
-      }
+  .tool-btn .tool-pill-sub {
+    font-size: 9px;
+    opacity: 0.7;
+  }
 
-      .tool-btn {
-        flex: 1 0 45%;
-        font-size: 11px;
-        padding: 4px 4px;
-        border-radius: 6px;
-        border: 1px solid #4b5563;
-        background: #030712;
-        color: #e5e7eb;
-        cursor: pointer;
-      }
+  /* Danger/Delete button for Creator */
+  .danger-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #4b5563;
+    background: #111827;
+    color: #e5e7eb;
+    font-size: 13px;
+    cursor: default;
+    opacity: 0.5;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
 
-      /* active tool is bright green immediately */
-      .tool-btn.active {
-        background: #16a34a !important;
-        border-color: #4ade80;
-        color: #ecfdf5;
-      }
+  .danger-btn-active {
+    border-color: #ef4444;
+    background: #7f1d1d;
+    color: #fee2e2;
+    opacity: 1;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+  }
 
-      /* hover only when not active */
-      .tool-btn:not(.active):hover {
-        background: #111827;
-      }
+  .danger-btn-disabled {
+    opacity: 0.4;
+    cursor: default;
+    border-color: #4b5563;
+    background: #111827;
+  }
 
-      .tool-section {
-        border: 1px solid rgba(55, 65, 81, 0.7);
-        border-radius: 8px;
-        padding: 6px;
-        background: rgba(15, 23, 42, 0.8);
-      }
+  /* LEVEL SELECT */
 
-      .tool-section-title {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        opacity: 0.8;
-        margin-bottom: 4px;
-      }
+  #levelSelectScreen {
+    /* inherits .screen */
+  }
 
-      .tool-row {
-        display: flex;
-        gap: 4px;
-        margin-bottom: 4px;
-      }
+  /* QUEST SCREEN */
 
-      /* Legend */
+  #questScreen {
+    /* still a screen, but we want layout stretched */
+    align-items: stretch;
+    justify-content: stretch;
+  }
 
-      .legend-item {
-        margin-bottom: 8px;
-        border-bottom: 1px solid rgba(55, 65, 81, 0.5);
-        padding-bottom: 6px;
-      }
+  #questLayout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+  }
 
-      .legend-title {
-        font-weight: 600;
-        font-size: 13px;
-      }
+  #questSidebar {
+    background: rgba(3, 7, 18, 0.9);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
 
-      .legend-icon {
-        display: inline-block;
-        min-width: 18px;
-        text-align: center;
-        margin-right: 6px;
-      }
+  #questSidebar h1 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
 
-      .legend-desc {
-        font-size: 12px;
-        opacity: 0.9;
-        margin-top: 2px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="appWrapper">
-      <!-- HOME SCREEN -->
-      <div id="homeScreen">
-        <div class="menu-card">
-          <div class="menu-title">PORTALQUEST</div>
-          <div class="menu-subtitle">
-            A puzzle-arcade game where you dodge enemies, unlock paths, and escape through portals.
-          </div>
-          <div class="menu-buttons">
-            <button id="playModeBtn" class="menu-btn">Play Levels</button>
-            <button id="creatorModeBtn" class="menu-btn">Create Levels</button>
-          </div>
+  #questSidebar h2 {
+    font-size: 13px;
+    margin: 10px 0 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+  }
+
+  #hudPanel {
+    font-size: 13px;
+  }
+
+  .hud-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+
+  .hud-label {
+    opacity: 0.85;
+  }
+
+  .hud-value {
+    font-weight: 600;
+  }
+
+  .hud-status {
+    font-size: 12px;
+    margin-top: 6px;
+    opacity: 0.9;
+  }
+
+  .quest-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #6b7280;
+    background: #111827;
+    color: #e5e7eb;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .quest-btn:hover {
+    background: #1f2937;
+  }
+
+  #gameContainer {
+    background: rgba(3, 7, 18, 0.85);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 0 16px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    position: relative; /* so overlays can center over this */
+  }
+
+  canvas {
+    display: block;
+    border: 2px solid #6ef2ff;
+    background: #050914;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+  }
+
+  #questOverlayHint {
+    margin-top: 8px;
+    font-size: 12px;
+    opacity: 0.8;
+    text-align: center;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .overlay-panel {
+    padding: 24px 32px;
+    background: rgba(10, 10, 25, 0.95);
+    border-radius: 12px;
+    border: 2px solid #0ff;
+    color: #fff;
+    text-align: center;
+  }
+
+  .overlay-panel button {
+    margin: 6px;
+  }
+  /* --- Home layout refinements --- */
+
+.home-layout {
+  max-width: 900px;
+}
+
+.home-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.home-section {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 12px;
+  padding: 12px 12px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  text-align: left;
+}
+
+.section-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+  margin: 0 0 4px;
+}
+
+.section-caption {
+  font-size: 11px;
+  opacity: 0.7;
+  margin: 0 0 8px;
+}
+
+.primary-btn {
+  border-color: #22c55e;
+  background: #14532d;
+  color: #bbf7d0;
+}
+
+.primary-btn:hover {
+  background: #166534;
+}
+
+.ghost-btn {
+  border-color: #4b5563;
+  background: transparent;
+  color: #e5e7eb;
+}
+
+.ghost-btn:hover {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.home-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+</style>
+
+</head>
+
+<body>
+  <div id="app">
+
+    <!-- ============================
+         MAIN MENU
+    ============================= -->
+    <div id="homeScreen" class="screen">
+      <div class="menu-card home-layout">
+        <h1 class="menu-title">PORTALQUEST</h1>
+        <p class="menu-subtitle">
+          Dodge enemies, outsmart traps, unlock gates, and beat entire portals.
+        </p>
+
+        <div class="home-columns">
+
+          <!-- PLAY COLUMN -->
+          <section class="home-section">
+            <h2 class="section-title">Play</h2>
+            <p class="section-caption">Jump into official or custom portals.</p>
+
+            <div class="menu-buttons">
+              <button id="btnPlayQuest" class="menu-btn primary-btn">
+                Portal Mode
+              </button>
+            </div>
+          </section>
+
+          <!-- CREATE COLUMN -->
+          <section class="home-section">
+            <h2 class="section-title">Create</h2>
+            <p class="section-caption">Build levels & full portals.</p>
+
+            <div class="menu-buttons">
+              <button id="btnCreator" class="menu-btn">Level Creator</button>
+              <button id="btnMyLevels" class="menu-btn">My Levels</button>
+              <button id="btnMyPortals" class="menu-btn">My Portals</button>
+            </div>
+          </section>
+
+          <!-- SHARE COLUMN -->
+          <section class="home-section">
+            <h2 class="section-title">Share</h2>
+            <p class="section-caption">Trade levels & portals with friends.</p>
+
+            <div class="menu-buttons">
+              <button id="btnImportPortal" class="menu-btn">Import Portal</button>
+              <button id="btnImportLevel" class="menu-btn">Import Level</button>
+            </div>
+          </section>
+
         </div>
-      </div>
 
-      <!-- GAME APP (shown after choosing a mode) -->
-      <div id="app">
-        <!-- LEFT PANEL: Play Mode (HUD + Level Select) -->
-        <aside id="leftPanelPlay">
-          <h1>PortalQuest</h1>
-
-          <h2>Game Info</h2>
-          <div id="hud">
-            <div class="hud-row">
-              <span>Level</span><span id="hudLevel">1</span>
-            </div>
-            <div class="hud-row">
-              <span>Time</span><span id="hudTime">90.0</span>
-            </div>
-            <div class="hud-row">
-              <span>Score</span><span id="hudScore">0</span>
-            </div>
-            <div class="hud-row">
-              <span>Lives</span><span id="hudLives">3</span>
-            </div>
-            <div class="hud-row">
-              <span>Dash</span><span id="hudDash">0</span>
-            </div>
-            <div class="hud-row">
-              <span>Key</span><span id="hudKey">NO</span>
-            </div>
-            <div id="statusText">Status: normal</div>
-          </div>
-
-          <h2>Controls</h2>
-          <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">
-            Move: WASD / Arrows<br />
-            Dash: Space<br />
-            Reset: R
-          </div>
-
-          <h2>Levels</h2>
-          <div id="levelButtons">
-            <button class="level-btn" data-level="0">L1</button>
-            <button class="level-btn" data-level="1">L2</button>
-            <button class="level-btn" data-level="2">L3</button>
-            <button class="level-btn" data-level="3">L4</button>
-            <button class="level-btn" data-level="4">L5</button>
-          </div>
-
-          <button id="resetBtn">Reset Run</button>
-          <button id="backFromPlayBtn" class="nav-btn">Main Menu</button>
-        </aside>
-
-        <!-- LEFT PANEL: Editor Mode (separate view) -->
-        <aside id="leftPanelEditor">
-          <h1>Level Creator</h1>
-
-          <p style="font-size: 12px; opacity: 0.9;">
-            Build a level from scratch. Place walls, choose the player start, and position the portal.
-          </p>
-
-          <h2>Tools</h2>
-          <div id="editorTools" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
-
-            <!-- Layout -->
-            <div class="tool-section">
-              <div class="tool-section-title">Layout</div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="wall">🧱 Wall</button>
-                <button class="tool-btn" data-tool="erase">❌ Erase</button>
-              </div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="player">🟨 Player Start</button>
-                <button class="tool-btn" data-tool="portal">⭕ Portal</button>
-              </div>
-            </div>
-
-            <!-- Enemies -->
-            <div class="tool-section">
-              <div class="tool-section-title">Enemies</div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="enemy_patrol">🟥 Patrol</button>
-                <button class="tool-btn" data-tool="enemy_chaser">🔺 Chaser</button>
-              </div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="enemy_spinner">🌀 Spinner</button>
-              </div>
-            </div>
-
-            <!-- Powerups -->
-            <div class="tool-section">
-              <div class="tool-section-title">Powerups</div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="power_speed">S Speed</button>
-                <button class="tool-btn" data-tool="power_shield">🛡️ Shield</button>
-              </div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="power_dash">👟 Dash</button>
-              </div>
-            </div>
-
-            <!-- Hazards -->
-            <div class="tool-section">
-              <div class="tool-section-title">Hazards</div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="trap_glue">💧 Glue</button>
-                <button class="tool-btn" data-tool="trap_fire">🔥 Fire</button>
-              </div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="trap_poison">☠️ Poison</button>
-                <button class="tool-btn" data-tool="trap_spike">⚠️ Spikes</button>
-              </div>
-            </div>
-
-            <!-- Logic -->
-            <div class="tool-section">
-              <div class="tool-section-title">Logic</div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="key">🔑 Key</button>
-                <button class="tool-btn" data-tool="door_key">🔒 Key Door</button>
-              </div>
-              <div class="tool-row">
-                <button class="tool-btn" data-tool="switch">⏺ Switch</button>
-                <button class="tool-btn" data-tool="door_switch">⏻ Switch Door</button>
-              </div>
-            </div>
-
-          </div>
-
-          <h2>Selected</h2>
-          <div id="selectionInfo" style="font-size: 12px; min-height: 38px; opacity: 0.9;">
-            Nothing selected
-          </div>
-
-          <button
-            id="deleteBtn"
-            class="level-btn"
-            style="width: 100%; margin-top: 4px; opacity: 0.4; cursor: default;"
-          >
-            Delete Selected
-          </button>
-
-          <button
-            id="togglePatrolAxisBtn"
-            class="level-btn"
-            style="width: 100%; margin-top: 4px; display: none;"
-          >
-            Toggle Patrol Direction
-          </button>
-
-          <button id="testCustomBtn" class="level-btn" style="width: 100%; margin-top: 8px;">
-            Test Custom Level
-          </button>
-
-          <button
-            id="endTestBtn"
-            class="level-btn"
-            style="width: 100%; margin-top: 4px; display: none;"
-          >
-            Return to Editor
-          </button>
-
-          <button id="backFromEditorBtn" class="nav-btn">Main Menu</button>
-        </aside>
-
-        <!-- CENTER PANEL: GAME CANVAS -->
-        <main id="centerPanel">
-          <canvas id="game" width="568" height="390"></canvas>
-        </main>
-
-        <!-- RIGHT PANEL: LEGEND -->
-        <aside id="rightPanel">
-          <h2>Legend</h2>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">🟨</span> Player
-            </div>
-            <div class="legend-desc">
-              You. Move with WASD / Arrows. Dash with Space. Avoid enemies and traps, reach the portal.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">⭕</span> Portal
-            </div>
-            <div class="legend-desc">
-              Glowing ring. Reach this to complete the level.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">⬛</span> Walls
-            </div>
-            <div class="legend-desc">
-              Solid obstacles. You and enemies cannot pass through them.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">🔒</span> Key Door
-            </div>
-            <div class="legend-desc">
-              Purple door with a lock. Requires a key to open.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">⏻</span> Switch Door
-            </div>
-            <div class="legend-desc">
-              Teal door with power symbol. Opens when a linked floor switch is activated.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">🔑</span> Key
-            </div>
-            <div class="legend-desc">
-              Gold key pickup. Collect to unlock key doors in the level.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">⏺</span> Floor Switch
-            </div>
-            <div class="legend-desc">
-              Glowing plate. Stepping on it permanently opens linked switch doors.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">S</span> Speed Orb
-            </div>
-            <div class="legend-desc">
-              Yellow orb with "S". Temporarily increases movement speed.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">🛡️</span> Shield Orb
-            </div>
-            <div class="legend-desc">
-              Protects you from one hit for a short time.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">👟</span> Dash Orb
-            </div>
-            <div class="legend-desc">
-              Grants dash charges. Press Space to dash in the last movement direction.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">💧</span> Glue
-            </div>
-            <div class="legend-desc">
-              Light blue puddle. Slows movement while standing in it.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">🔥</span> Fire
-            </div>
-            <div class="legend-desc">
-              Deals damage on contact.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">☠️</span> Poison
-            </div>
-            <div class="legend-desc">
-              Drains remaining time while active.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">⚠️</span> Spikes
-            </div>
-            <div class="legend-desc">
-              Deals heavy damage if you touch it.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">🟥</span> Patrol Enemy
-            </div>
-            <div class="legend-desc">
-              Moves back and forth in a line. Hitting it costs a life.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">🔺</span> Chaser Enemy
-            </div>
-            <div class="legend-desc">
-              Triangle-shaped enemy that slowly homes in on you.
-            </div>
-          </div>
-
-          <div class="legend-item">
-            <div class="legend-title">
-              <span class="legend-icon">🌀</span> Spinner Enemy
-            </div>
-            <div class="legend-desc">
-              Circular enemy that orbits a point. Avoid crossing its path.
-            </div>
-          </div>
-
-        </aside>
+        <div class="home-footer">
+          <button id="btnQuit" class="menu-btn ghost-btn">Quit</button>
+        </div>
       </div>
     </div>
 
-    <script type="module" src="./main.js"></script>
-  </body>
+
+    <!-- ============================
+         QUEST PORTAL SELECT SCREEN
+    ============================= -->
+    <div id="questPortalSelectScreen" class="screen hidden">
+      <div class="menu-card">
+        <div class="menu-title">Select Portal</div>
+        <div class="menu-subtitle">Choose an official Portal to begin.</div>
+
+        <div id="questPortalList" class="menu-buttons" style="margin-bottom:16px;">
+          <!-- JS will populate “Portal 1”, “Portal 2”, etc. -->
+        </div>
+
+        <button id="btnQuestPortalBack" class="menu-btn">Back to Main Menu</button>
+      </div>
+    </div>
+
+
+    <!-- ============================
+         MY LEVELS SCREEN
+    ============================= -->
+    <div id="myLevelsScreen" class="screen hidden">
+      <div class="menu-card">
+        <div class="menu-title">My Levels</div>
+        <div class="menu-subtitle">Manage and edit your custom-built levels.</div>
+
+        <div id="myLevelsList" class="menu-buttons" style="margin-bottom:12px;"></div>
+
+        <button id="btnMyLevelsBack" class="menu-btn">Back to Main Menu</button>
+      </div>
+    </div>
+
+
+    <!-- ============================
+         MY PORTALS SCREEN
+    ============================= -->
+    <div id="myPortalsScreen" class="screen hidden">
+      <div class="menu-card">
+        <div class="menu-title">My Portals</div>
+        <div class="menu-subtitle">Your saved portals (created or imported).</div>
+
+        <button id="btnCreatePortal" class="menu-btn" style="margin-bottom:10px;">
+          Create New Portal
+        </button>
+
+        <div id="myPortalsList" class="menu-buttons" style="margin-bottom:12px;"></div>
+
+        <button id="btnMyPortalsBack" class="menu-btn">Back to Main Menu</button>
+      </div>
+    </div>
+
+
+    <!-- ============================
+         PORTAL EDITOR OVERLAY
+    ============================= -->
+    <div id="portalEditorOverlay" class="hidden"
+         style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+                backdrop-filter:blur(4px); background:rgba(0,0,0,0.6); z-index:1000;">
+      <div class="menu-card" style="max-width:720px; width:100%; text-align:left;">
+        <h2 style="margin-top:0;">Portal Editor</h2>
+
+        <!-- Portal Name -->
+        <label style="display:block; margin-bottom:12px;">
+          Portal Name:
+          <input id="portalEditorName"
+                 type="text"
+                 maxlength="40"
+                 placeholder="My Portal"
+                 style="width:100%; margin-top:4px; padding:6px 8px; border-radius:6px;
+                        border:1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb;" />
+        </label>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+
+          <!-- LEFT COLUMN: Available Levels -->
+          <div>
+            <h3 style="margin:0 0 6px; font-size:12px;">Available Levels</h3>
+            <div id="portalEditorAvailable"
+                 style="max-height:260px; overflow-y:auto; border-radius:8px;
+                        border:1px solid rgba(148,163,184,0.4); padding:8px;"></div>
+          </div>
+
+          <!-- RIGHT COLUMN: Levels in Portal -->
+          <div>
+            <h3 style="margin:0 0 6px; font-size:12px;">Levels in Portal</h3>
+            <div id="portalEditorSelected"
+                 style="max-height:260px; overflow-y:auto; border-radius:8px;
+                        border:1px solid rgba(148,163,184,0.4); padding:8px;"></div>
+          </div>
+
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button id="portalEditorCancel" class="menu-btn">Cancel</button>
+          <button id="portalEditorSave" class="menu-btn"
+                  style="border-color:#22c55e;background:#14532d;color:#bbf7d0;">
+            Save Portal
+          </button>
+        </div>
+      </div>
+    </div>
+
+        <!-- CREATOR SCREEN -->
+    <div id="creatorScreen" class="screen hidden">
+      <div class="menu-card" style="width: 100%; max-width: none; text-align: left;">
+        <!-- Top bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div style="display:flex; gap: 8px; align-items: center;">
+            <button id="btnCreatorBack" class="menu-btn" style="padding: 6px 14px;">← Back</button>
+            <h2 style="margin: 0; font-size: 18px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.9;">
+              Level Creator (v2)
+            </h2>
+          </div>
+          <div style="display:flex; gap: 8px;">
+<button id="btnCreatorNew" class="menu-btn" style="padding: 6px 14px;">New Level</button>
+<button id="btnCreatorPlaytest" class="menu-btn" style="padding: 6px 14px; opacity: 0.6; cursor: default;" disabled>
+  Test Game
+</button>
+
+</div>
+        </div>
+
+        <!-- Body layout -->
+        <div style="display:grid; grid-template-columns: 220px 1fr 260px; gap: 16px; min-height: 420px;">
+<!-- Toolbox -->
+<aside
+  style="
+    background: rgba(15,23,42,0.9);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid rgba(148,163,184,0.4);
+  "
+>
+  <h3
+    style="
+      margin-top: 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      opacity: 0.8;
+    "
+  >
+    Level Palette
+  </h3>
+
+  <!-- Hidden Select button (still used by JS, just not visible) -->
+  <button
+    id="toolSelect"
+    class="tool-btn tool-btn-active"
+    style="display:none;"
+  >
+    Select / Move
+  </button>
+
+<!-- BUILD -->
+<div class="tool-section">
+  <div class="tool-section-title">Build</div>
+  <div class="tool-grid">
+
+    <!-- WALL -->
+    <button class="tool-btn" data-group="build" data-type="wall">
+      🧱 <span class="tool-pill-label">Wall</span>
+    </button>
+
+    <!-- KEY GATE -->
+    <button class="tool-btn" data-group="build" data-type="key-gate">
+      🔑 <span class="tool-pill-label">Key Gate</span>
+    </button>
+
+    <!-- SWITCH GATE -->
+    <button class="tool-btn" data-group="build" data-type="switch-gate">
+      🔘 <span class="tool-pill-label">Switch Gate</span>
+    </button>
+
+  </div>
+</div>
+  <!-- ITEMS -->
+  <div class="tool-section">
+    <div class="tool-section-title">Items</div>
+    <div class="tool-grid">
+      <button id="toolKey" class="tool-btn" data-tooltip="Key (by Key ID)">
+        <div class="tool-pill-icon">🔑</div>
+        <div class="tool-pill-label">Key</div>
+      </button>
+
+      <button id="toolSwitch" class="tool-btn" data-tooltip="Floor switch">
+        <div class="tool-pill-icon">🎚️</div>
+        <div class="tool-pill-label">Switch</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- POWERUPS -->
+  <div class="tool-section">
+    <div class="tool-section-title">Powerups</div>
+    <div class="tool-grid">
+      <button id="toolPowerup" class="tool-btn" data-type="speed" data-group="powerup">
+        ⚡ <span class="tool-pill-label">Speed</span>
+      </button>
+      <button id="toolPowerupDash" class="tool-btn" data-type="dash" data-group="powerup">
+        💨 <span class="tool-pill-label">Dash</span>
+      </button>
+      <button id="toolPowerupShield" class="tool-btn" data-type="shield" data-group="powerup">
+        🛡️ <span class="tool-pill-label">Shield</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TRAPS -->
+  <div class="tool-section">
+    <div class="tool-section-title">Traps</div>
+    <div class="tool-grid">
+      <button id="toolTrapPoison" class="tool-btn" data-type="poison" data-group="trap">
+        ☠️ <span class="tool-pill-label">Poison</span>
+      </button>
+      <button id="toolTrapFire" class="tool-btn" data-type="fire" data-group="trap">
+        🔥 <span class="tool-pill-label">Fire</span>
+      </button>
+      <button id="toolTrapGlue" class="tool-btn" data-type="glue" data-group="trap">
+        🧴 <span class="tool-pill-label">Glue</span>
+      </button>
+      <button id="toolTrapSpike" class="tool-btn" data-type="spike" data-group="trap">
+        🗡️ <span class="tool-pill-label">Spike</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ENEMIES -->
+  <div class="tool-section">
+    <div class="tool-section-title">Enemies</div>
+    <div class="tool-grid">
+      <button id="toolEnemyPatrol" class="tool-btn" data-type="patrol" data-group="enemy">
+        🚶 <span class="tool-pill-label">Patrol</span>
+      </button>
+      <button id="toolEnemyChaser" class="tool-btn" data-type="chaser" data-group="enemy">
+        🧠 <span class="tool-pill-label">Chaser</span>
+      </button>
+      <button id="toolEnemySpinner" class="tool-btn" data-type="spinner" data-group="enemy">
+        🔄 <span class="tool-pill-label">Spinner</span>
+      </button>
+    </div>
+  </div>
+
+  <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
+    Click a tool to place one object. After placing, you’ll return to Move mode.
+  </div>
+</aside>
+
+          <!-- Canvas area -->
+          <main id="creatorCanvasContainer" style="background: radial-gradient(circle at top, #020617 0%, #020617 40%, #000 100%); border-radius: 12px; border: 1px solid rgba(56,189,248,0.4); position: relative; overflow: hidden; display:flex; align-items:center; justify-content:center;">
+<canvas
+  id="editorCanvas"
+  width="568"
+  height="390"
+  style="max-width:100%; max-height:100%;"
+></canvas>
+
+</main>
+
+
+<!-- Properties / meta -->
+<aside style="background: rgba(15,23,42,0.9); border-radius: 12px; padding: 12px; border: 1px solid rgba(148,163,184,0.4);">
+  <h3 style="margin-top:0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity:0.8;">
+    Level Info
+  </h3>
+
+  <!-- Level name + mode + status -->
+  <div style="font-size: 13px; opacity: 0.9;">
+    <label style="display:block; margin-bottom: 8px; font-size: 12px;">
+      Level Name:
+      <input
+        id="level-name-input"
+        type="text"
+        placeholder="My First Level"
+        maxlength="40"
+        style="width: 100%; margin-top: 4px; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+      <span id="creatorLevelName" style="display:none;">Untitled</span>
+    </label>
+
+    <div style="margin-bottom: 4px;">
+      <strong>Mode:</strong> Creator
+    </div>
+
+    <div>
+      <strong>Status:</strong>
+      <span id="creatorStatus">Empty level</span>
+    </div>
+  </div>
+
+  <!-- Placement type controls (what new entities will be) -->
+  <div
+    id="placement-panel"
+    style="margin-top: 10px; font-size: 12px; padding-top: 6px; border-top: 1px solid rgba(148,163,184,0.3);"
+  >
+    <div style="margin-bottom: 4px; opacity:0.8;">
+      <strong>Placement:</strong> (based on active tool)
+    </div>
+
+    <!-- Trap placement type -->
+    <div
+      id="trap-placement-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Trap Type:</span>
+      <select
+        id="trap-placement-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="glue">Glue (slow)</option>
+        <option value="fire">Fire</option>
+        <option value="poison">Poison</option>
+        <option value="spike">Spike</option>
+      </select>
+    </div>
+
+    <!-- Powerup placement type -->
+    <div
+      id="powerup-placement-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Powerup:</span>
+      <select
+        id="powerup-placement-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="speed">Speed</option>
+        <option value="shield">Shield</option>
+        <option value="dash">Dash</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Small help text -->
+  <p style="font-size:11px; opacity:0.65; margin-top:12px;">
+    As we build the editor, this panel will show details for the selected entity: type, axis, speed, links,
+    etc.
+  </p>
+
+  <!-- Save status line -->
+  <div id="creator-save-status" style="font-size: 11px; margin-top: 6px; min-height: 14px;"></div>
+
+  <!-- Selected entity info -->
+  <div
+    id="selected-entity-panel"
+    style="margin-top: 12px; font-size: 12px; padding-top: 8px; border-top: 1px solid rgba(148,163,184,0.3); display:none;"
+  >
+    <div style="margin-bottom: 4px;">
+      <strong>Selected:</strong>
+      <span id="selected-entity-kind">None</span>
+    </div>
+
+    <!-- Trap type row (for selected traps) -->
+    <div
+      id="trap-type-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Trap Type:</span>
+      <select
+        id="trap-type-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="glue">Glue (slow)</option>
+        <option value="fire">Fire</option>
+        <option value="poison">Poison</option>
+        <option value="spike">Spike</option>
+      </select>
+    </div>
+
+    <!-- Powerup type row (for selected powerups) -->
+    <div
+      id="powerup-type-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Powerup:</span>
+      <select
+        id="powerup-type-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="speed">Speed</option>
+        <option value="shield">Shield</option>
+        <option value="dash">Dash</option>
+      </select>
+    </div>
+
+    <!-- Door type row (for selected doors) -->
+    <div
+      id="door-type-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Door Type:</span>
+      <select
+        id="door-type-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="key">Key Door</option>
+        <option value="switch">Switch Door</option>
+      </select>
+    </div>
+
+    <!-- Key Door ID row (for key doors) -->
+    <div
+      id="door-id-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Key Door ID:</span>
+      <input
+        id="door-id-input"
+        type="text"
+        maxlength="16"
+        placeholder="e.g. 1"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+
+    <!-- Orientation row (walls / doors) -->
+    <div
+      id="rect-orientation-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Orientation:</span>
+      <select
+        id="rect-orientation-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="horizontal">Horizontal</option>
+        <option value="vertical">Vertical</option>
+      </select>
+    </div>
+
+    <!-- Length row (walls / doors), in tiles -->
+    <div
+      id="rect-length-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Length (tiles):</span>
+      <input
+        id="rect-length-input"
+        type="number"
+        min="1"
+        max="20"
+        value="1"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+
+    <!-- Enemy type row -->
+    <div
+      id="enemy-type-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Enemy Type:</span>
+      <select
+        id="enemy-type-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="patrol">Patrol</option>
+        <option value="chaser">Chaser</option>
+        <option value="spinner">Spinner</option>
+      </select>
+    </div>
+
+    <!-- Patrol axis row -->
+    <div
+      id="enemy-axis-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Patrol Axis:</span>
+      <select
+        id="enemy-axis-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <option value="horizontal">Horizontal</option>
+        <option value="vertical">Vertical</option>
+      </select>
+    </div>
+
+    <!-- Patrol direction row -->
+    <div
+      id="enemy-dir-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Direction:</span>
+      <select
+        id="enemy-dir-select"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      >
+        <!-- Options depend on axis; JS will update them -->
+        <option value="right">Right</option>
+        <option value="left">Left</option>
+      </select>
+    </div>
+
+    <!-- Key ID row (for selected keys) -->
+    <div
+      id="key-id-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Key ID:</span>
+      <input
+        id="key-id-input"
+        type="text"
+        maxlength="16"
+        placeholder="e.g. 1"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+
+    <!-- Switch ID row (for selected switches) -->
+    <div
+      id="switch-id-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Switch ID:</span>
+      <input
+        id="switch-id-input"
+        type="text"
+        maxlength="16"
+        placeholder="e.g. A"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+
+    <!-- Switch Door ID row (for switch doors) -->
+    <div
+      id="switch-doors-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Switch Door ID:</span>
+      <input
+        id="switch-doors-input"
+        type="text"
+        maxlength="16"
+        placeholder="e.g. A"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+  </div> <!-- end of selected-entity-panel -->
+
+  </div>
+
+  <!-- Save button -->
+  <button
+    id="save-level-btn"
+    class="quest-btn"
+    style="margin-top: 8px;"
+  >
+    Save Level
+  </button>
+
+  <!-- Delete Selected button -->
+  <button
+    id="btnCreatorDelete"
+    class="danger-btn danger-btn-disabled"
+    disabled
+  >
+    Delete Selected
+  </button>
+
+  <!-- End Test button (editor playtest) -->
+  <button
+    id="btnEndTest"
+    class="quest-btn hidden"
+    style="margin-top: 10px;"
+  >
+    End Test (Back to Edit Mode)
+  </button>
+</aside>
+
+        </div>
+      </div>
+    </div>
+
+
+    <!-- QUEST SCREEN -->
+    <div id="questScreen" class="screen hidden">
+      <div id="questLayout">
+        <aside id="questSidebar">
+          <h1>PortalQuest</h1>
+
+          <h2>Status</h2>
+          <div id="hudPanel">
+            <div class="hud-row">
+              <span class="hud-label">Level</span>
+              <span id="hudLevel" class="hud-value">1</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Lives</span>
+              <span id="hudLives" class="hud-value">3</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Health</span>
+              <span id="hudHealth" class="hud-value">100</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Score</span>
+              <span id="hudScore" class="hud-value">0</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Dash</span>
+              <span id="hudDash" class="hud-value">0</span>
+            </div>
+            <div class="hud-row">
+              <span class="hud-label">Key</span>
+              <span id="hudKey" class="hud-value">NO</span>
+            </div>
+            <div id="hudStatus" class="hud-status">Status: normal</div>
+          </div>
+
+          <h2>Controls</h2>
+          <div style="font-size: 12px; opacity: 0.9;">
+            Move: WASD / Arrows<br />
+            Dash: Space<br />
+            Restart Level: R (later)<br />
+          </div>
+
+<h2>Quest</h2>
+<button id="btnRestartLevel" class="quest-btn">Restart Level</button>
+<button id="btnRestartQuest" class="quest-btn">Restart Portal</button>
+<button id="btnBackToMenu" class="quest-btn">Back to Main Menu</button>
+
+</aside>
+
+        <main id="gameContainer">
+          <canvas id="game" width="568" height="390"></canvas>
+          <div id="questOverlayHint">
+            Reach the glowing portal. Avoid enemies and traps. Grab powerups to survive.
+          </div>
+
+          <!-- Overlays anchored to gameContainer -->
+          <div id="pause-overlay" class="overlay hidden">
+            <div class="overlay-panel">
+              <h2>Paused</h2>
+              <button id="pause-resume-btn">Resume</button>
+              <button id="pause-restart-level-btn">Restart Level</button>
+              <button id="pause-restart-quest-btn">Restart Portal</button>
+              <button id="pause-main-menu-btn">Main Menu</button>
+            </div>
+          </div>
+
+          <div id="level-complete-overlay" class="overlay hidden">
+            <div class="overlay-panel">
+              <h2>Level Complete!</h2>
+              <p>Nice run. Ready for the next level?</p>
+              <button id="level-next-btn">Next Level</button>
+              <button id="level-restart-quest-btn">Restart Portal</button>
+              <button id="level-main-menu-btn">Main Menu</button>
+            </div>
+          </div>
+
+          <div id="game-over-overlay" class="overlay hidden">
+            <div class="overlay-panel">
+              <h2>Game Over</h2>
+              <p>You ran out of lives.</p>
+              <button id="gameover-restart-quest-btn">Restart Portal</button>
+              <button id="gameover-main-menu-btn">Main Menu</button>
+            </div>
+          </div>
+
+          <div id="quest-complete-overlay" class="overlay hidden">
+            <div class="overlay-panel">
+              <h2>Quest Complete!</h2>
+              <p>You cleared all portals. You win!</p>
+              <button id="questcomplete-restart-quest-btn">Play Again</button>
+              <button id="questcomplete-main-menu-btn">Main Menu</button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
 </html>

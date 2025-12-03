@@ -6,7 +6,8 @@ import { updateEnemies, handlePlayerEnemyCollisions } from "./systems/enemySyste
 import { updatePowerups } from "./systems/powerupSystem.js";
 import { updateTraps } from "./systems/trapSystem.js";
 import { updateLogic } from "./systems/logicSystem.js";
-// import { advanceQuestLevel } from "../modes/questMode.js"; // REMOVED: now done via UI button
+import { loadLevelDataIntoState } from "../core/state.js";
+
 
 function distance(x1, y1, x2, y2) {
   const dx = x2 - x1;
@@ -16,14 +17,14 @@ function distance(x1, y1, x2, y2) {
 
 // Entry point: called once per frame
 export function updateGame(state, dt) {
-  // UPDATED: handle quest vs non-quest modes properly
+  const inQuest = state.mode === "quest";
+  const inCreatorTest = state.mode === "creator" && state.customTest;
 
-  if (state.mode === "quest") {
-    // In quest mode, only update while actively playing
-    if (state.isPaused) return; // NEW
-    if (!state.quest || state.quest.status !== "playing") return; // NEW
+  if (inQuest || inCreatorTest) {
+    if (state.isPaused) return;
+    if (state.quest && state.quest.status !== "playing") return;
   } else {
-    // Non-quest modes can still use gameOver/gameWon if you want
+    // Non-quest, non-test modes: bail if game over/won
     if (state.gameOver || state.gameWon) return;
   }
 
@@ -33,7 +34,7 @@ export function updateGame(state, dt) {
   updateTraps(state, dt);
   updateLogic(state, dt);
   handlePlayerEnemyCollisions(state, dt);
-  checkPortal(state); // UPDATED behavior below
+  checkPortal(state);
 }
 
 function rectsOverlap(a, b) {
@@ -113,17 +114,16 @@ function updatePlayerMovementAndWalls(state, dt) {
   }
 
   // Collide with doors (key + switch doors)
+  const keyCounts = state.keyCounts || (state.keyCounts = {});
+
   for (let i = state.doors.length - 1; i >= 0; i--) {
     const door = state.doors[i];
     if (!rectsOverlap(player, door)) continue;
 
-    const isSwitchDoor = door.type === "switch";
-    const isKeyDoor = !door.type || door.type === "key";
+    const movedHorizontally = player.x !== oldX;
+    const movedVertically   = player.y !== oldY;
 
-    if (isSwitchDoor) {
-      // Always behaves like a wall; switches open them
-      const movedHorizontally = player.x !== oldX;
-      const movedVertically = player.y !== oldY;
+    const blockAsWall = () => {
       if (movedHorizontally && !movedVertically) {
         player.x = oldX;
       } else if (!movedHorizontally && movedVertically) {
@@ -132,29 +132,53 @@ function updatePlayerMovementAndWalls(state, dt) {
         player.x = oldX;
         player.y = oldY;
       }
-      continue;
+    };
+
+const isSwitchDoor = door.type === 'switch';
+const isKeyDoor    = !door.type || door.type === 'key';
+
+// SWITCH DOORS: solid if CLOSED, pass-through if OPEN
+if (isSwitchDoor) {
+  // Default undefined isOpen to "closed"
+  if (!door.isOpen) {
+    blockAsWall();
+  }
+  // If isOpen === true, we DON'T block; player can walk through.
+  continue;
+}
+
+// KEY DOORS: require a matching key in inventory
+if (isKeyDoor) {
+  // Support either keyDoorId (new) or keyId (legacy) on the door
+  const id = door.keyDoorId || door.keyId || null;
+  if (!id) {
+    console.warn('[Engine] Key door missing keyId/keyDoorId; acting as wall:', door);
+    blockAsWall();
+    continue;
+  }
+
+  const currentCount = keyCounts[id] || 0;
+
+  if (currentCount > 0) {
+    // Consume one key and remove the door
+    keyCounts[id] = currentCount - 1;
+    if (keyCounts[id] <= 0) {
+      delete keyCounts[id];
     }
 
-    if (isKeyDoor) {
-      if (state.hasKey) {
-        // Unlock this door using the key
-        state.hasKey = false;
-        state.doors.splice(i, 1);
-        // Allow player to pass through (no position reset)
-      } else {
-        // No key → treat door as wall
-        const movedHorizontally = player.x !== oldX;
-        const movedVertically = player.y !== oldY;
-        if (movedHorizontally && !movedVertically) {
-          player.x = oldX;
-        } else if (!movedHorizontally && movedVertically) {
-          player.y = oldY;
-        } else {
-          player.x = oldX;
-          player.y = oldY;
-        }
-      }
-    }
+    state.doors.splice(i, 1);
+    console.log(`[Engine] Opened key door with id="${id}". Remaining keys:`, keyCounts);
+    // do NOT block movement → player passes through
+    continue;
+  }
+
+  // No matching key → treat as wall
+  blockAsWall();
+  continue;
+}
+
+    // Any unknown door types → just block
+    blockAsWall();
   }
 }
 
@@ -162,25 +186,41 @@ function updatePlayerMovementAndWalls(state, dt) {
 
 function checkPortal(state) {
   const portal = state.portal;
-  if (!portal) return; // NEW: guard if level forgot to define a portal
+  if (!portal) return;
 
   const player = state.player;
   const px = player.x + player.w / 2;
   const py = player.y + player.h / 2;
 
   const distToPortal = distance(px, py, portal.x, portal.y);
+  if (distToPortal >= portal.r) return;
 
-  if (distToPortal < portal.r) {
-    if (state.mode === "quest") {
-      // UPDATED: don’t immediately advance level
-      // Just flag LEVEL COMPLETE and let UI handle Next Level
-      if (state.quest && state.quest.status === "playing") {
-        state.quest.status = "levelComplete"; // NEW
-        state.isPaused = true;                // NEW (optional, to freeze gameplay)
-      }
-    } else {
-      // Non-quest modes can just mark gameWon directly
-      state.gameWon = true;
+  const inCreatorTest = state.mode === "creator" && state.customTest;
+  const inQuest = state.mode === "quest";
+
+  // 1) CREATOR TEST MODE – restart the same level
+  if (inCreatorTest) {
+    if (state.lastTestLevelData) {
+      loadLevelDataIntoState(state, state.lastTestLevelData);
+      state.quest.status = "playing";
+      state.gameOver = false;
+      state.gameWon = false;
     }
+    return;
   }
+
+  // 2) QUEST MODE – built-in or custom level
+  if (inQuest && state.quest) {
+    // If this is a single custom level run (My Levels → Play),
+    // or a normal quest level, we just mark the level complete.
+    // Your existing UI (handleQuestStatusForUI) will:
+    //  - show the Level Complete overlay
+    //  - let "Next Level" button call advanceQuestLevel(state)
+    state.gameWon = true;
+    state.quest.status = "levelComplete";
+    return;
+  }
+
+  // 3) Fallback – any other mode: just mark win
+  state.gameWon = true;
 }

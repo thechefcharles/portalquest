@@ -4,6 +4,7 @@
 const mainMenu = document.getElementById("homeScreen");
 const levelSelectScreen = document.getElementById("levelSelectScreen");
 const questScreen = document.getElementById("questScreen");
+const creatorScreen = document.getElementById("creatorScreen"); // NEW
 
 // Overlays (may not exist yet, so we guard before using them)
 const pauseOverlay = document.getElementById("pause-overlay");
@@ -25,6 +26,7 @@ function hideAllScreens() {
   hideElement(mainMenu);
   hideElement(levelSelectScreen);
   hideElement(questScreen);
+  hideElement(creatorScreen); // NEW
 }
 
 export function showMainMenu() {
@@ -72,3 +74,10 @@ export function showGameOverOverlay() {
 export function showQuestCompleteOverlay() {
   showElement(questCompleteOverlay);
 }
+
+export function showCreatorScreen() {
+  hideAllScreens();
+  showElement(creatorScreen);
+  hideAllOverlays();
+}
+
