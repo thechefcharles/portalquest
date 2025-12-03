@@ -1925,14 +1925,22 @@ if (editorCanvas) {
       isValid = canPlaceSpawnAtGrid(level, gridX, gridY);
     } else if (tool === 'portal') {
       isValid = canPlacePortalAtGrid(level, gridX, gridY);
-    } else if (tool === 'trap') {                         // NEW
+    } else if (tool === 'trap') {
       isValid = canPlaceTrapAtGrid(level, gridX, gridY);
-    } else if (tool === 'powerup') {                      // NEW
+    } else if (tool === 'powerup') {
       isValid = canPlacePowerupAtGrid(level, gridX, gridY);
+    } else if (
+      tool === 'key' ||
+      tool === 'door' ||
+      tool === 'switch' ||
+      tool === 'enemy'
+    ) {
+      // For now: always allow; we’ll add “no overlap” rules later.
+      isValid = true;
     }
 
     editorState.hover = { tool, gridX, gridY, isValid };
-    });
+      });
 
   editorCanvas.addEventListener('mouseleave', () => {
     editorState.hover = null;

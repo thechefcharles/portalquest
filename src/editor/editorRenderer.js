@@ -152,29 +152,102 @@ function drawSpawnMarker(ctx, level) {
  */
 function drawHoverPreview(ctx) {
   const hover = editorState.hover;
-  if (!hover || !hover.isValid) return;
+  if (!hover) return;
 
-  const gx = hover.gridX;
-  const gy = hover.gridY;
+  const { tool, gridX: gx, gridY: gy, isValid } = hover;
 
   ctx.save();
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 2;
+  // Green-ish if valid, red-ish if invalid (future overlap rules)
+  ctx.strokeStyle = isValid
+    ? "rgba(34, 197, 94, 0.9)"
+    : "rgba(248, 113, 113, 0.9)";
 
-  if (hover.tool === "trap") {
-    const x = gx * GRID_SIZE;
-    const y = gy * GRID_SIZE;
-    ctx.strokeStyle = "rgba(249, 115, 22, 0.8)";
-    ctx.setLineDash([4, 4]);
-    ctx.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
+  const tileX = gx * GRID_SIZE;
+  const tileY = gy * GRID_SIZE;
 
-  } else if (hover.tool === "powerup") {
-    const cx = gx * GRID_SIZE + GRID_SIZE / 2;
-    const cy = gy * GRID_SIZE + GRID_SIZE / 2;
-    const r = GRID_SIZE * 0.3;
-    ctx.strokeStyle = "rgba(34, 197, 94, 0.8)";
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
+  switch (tool) {
+    case "wall": {
+      // 1 tile wall
+      ctx.strokeRect(tileX, tileY, GRID_SIZE, GRID_SIZE);
+      break;
+    }
+
+    case "spawn": {
+      // Player spawn tile
+      ctx.strokeRect(tileX, tileY, GRID_SIZE, GRID_SIZE);
+      break;
+    }
+
+    case "portal": {
+      // Portal centered in tile
+      const cx = tileX + GRID_SIZE / 2;
+      const cy = tileY + GRID_SIZE / 2;
+      const r = PORTAL_RADIUS;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+
+    case "trap": {
+      ctx.strokeRect(tileX, tileY, GRID_SIZE, GRID_SIZE);
+      break;
+    }
+
+    case "powerup": {
+      const cx = tileX + GRID_SIZE / 2;
+      const cy = tileY + GRID_SIZE / 2;
+      const r = GRID_SIZE * 0.3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+
+    case "key": {
+      // Same size as powerup
+      const cx = tileX + GRID_SIZE / 2;
+      const cy = tileY + GRID_SIZE / 2;
+      const r = GRID_SIZE * 0.3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+
+    case "door": {
+      // Default door placement: 1 tile wide, 1.5 tiles tall
+      const w = GRID_SIZE;
+      const h = GRID_SIZE * 1.5;
+      ctx.strokeRect(tileX, tileY, w, h);
+      break;
+    }
+
+    case "switch": {
+      // Match placeSwitchAtGrid sizing
+      const w = GRID_SIZE * 0.8;
+      const h = GRID_SIZE * 0.4;
+      const x = tileX + (GRID_SIZE - w) / 2;
+      const y = tileY + (GRID_SIZE - h) / 2;
+      ctx.strokeRect(x, y, w, h);
+      break;
+    }
+
+    case "enemy": {
+      // Match placeEnemyAtGrid sizing (0.8 tile centered)
+      const w = GRID_SIZE * 0.8;
+      const h = GRID_SIZE * 0.8;
+      const x = tileX + (GRID_SIZE - w) / 2;
+      const y = tileY + (GRID_SIZE - h) / 2;
+      ctx.strokeRect(x, y, w, h);
+      break;
+    }
+
+    default:
+      // no preview for select / unknown tools
+      break;
   }
 
   ctx.restore();
