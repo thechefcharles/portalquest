@@ -33,7 +33,7 @@ export function renderEditor(ctx) {
     switches: level.switches || [],
     portal: level.portal || null,
     enemies: level.enemies || [],
-    // we don't need player here for static view
+    // no player in editor view
   };
 
   // Draw all static level content + enemies with the exact same visuals
@@ -46,28 +46,36 @@ export function renderEditor(ctx) {
   drawHoverPreview(ctx);
 }
 
+/**
+ * Draw an orange outline around whatever is currently selected.
+ */
 function drawSelectionHighlight(ctx, level) {
   const sel = editorState.selectedEntity;
   if (!sel) return;
 
+  ctx.save();
   ctx.lineWidth = 3;
   ctx.strokeStyle = "#f97316"; // orange highlight
 
   if (sel.kind === "obstacle") {
     const o = (level.obstacles || [])[sel.index];
     if (o) ctx.strokeRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4);
+
   } else if (sel.kind === "spawn" && level.start) {
     const sx = level.start.x;
     const sy = level.start.y;
     ctx.strokeRect(sx - 2, sy - 2, GRID_SIZE + 4, GRID_SIZE + 4);
+
   } else if (sel.kind === "portal" && level.portal) {
     const { x, y, r } = level.portal;
     ctx.beginPath();
     ctx.arc(x, y, (r || PORTAL_RADIUS) + 4, 0, Math.PI * 2);
     ctx.stroke();
+
   } else if (sel.kind === "trap") {
     const t = (level.traps || [])[sel.index];
     if (t) ctx.strokeRect(t.x - 2, t.y - 2, t.w + 4, t.h + 4);
+
   } else if (sel.kind === "powerup") {
     const p = (level.powerups || [])[sel.index];
     if (p) {
@@ -75,6 +83,8 @@ function drawSelectionHighlight(ctx, level) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2);
       ctx.stroke();
+    }
+
   } else if (sel.kind === "key") {
     const k = (level.keys || [])[sel.index];
     if (k) {
@@ -83,25 +93,32 @@ function drawSelectionHighlight(ctx, level) {
       ctx.arc(k.x, k.y, r + 4, 0, Math.PI * 2);
       ctx.stroke();
     }
+
   } else if (sel.kind === "door") {
     const d = (level.doors || [])[sel.index];
     if (d) {
       ctx.strokeRect(d.x - 2, d.y - 2, d.w + 4, d.h + 4);
     }
+
   } else if (sel.kind === "switch") {
     const s = (level.switches || [])[sel.index];
     if (s) {
       ctx.strokeRect(s.x - 2, s.y - 2, s.w + 4, s.h + 4);
     }
+
   } else if (sel.kind === "enemy") {
     const e = (level.enemies || [])[sel.index];
     if (e) {
       ctx.strokeRect(e.x - 2, e.y - 2, e.w + 4, e.h + 4);
     }
   }
-  }
+
+  ctx.restore();
 }
 
+/**
+ * Draws a nice little player spawn marker so it's obvious where the player starts.
+ */
 function drawSpawnMarker(ctx, level) {
   if (!level.start) return;
 
@@ -109,10 +126,8 @@ function drawSpawnMarker(ctx, level) {
   const sy = level.start.y;
   const size = GRID_SIZE;
 
-  // Use same player gradient colors as play mode
   ctx.save();
   const grad = ctx.createLinearGradient(sx, sy, sx, sy + size);
-  // fallbacks in case COLORS fields are missing
   grad.addColorStop(0, "#ffdd66");
   grad.addColorStop(1, "#ff9f3b");
 
@@ -131,6 +146,10 @@ function drawSpawnMarker(ctx, level) {
   ctx.restore();
 }
 
+/**
+ * Draws a dashed preview of the thing you're about to place.
+ * (Right now just traps + powerups; we can expand later.)
+ */
 function drawHoverPreview(ctx) {
   const hover = editorState.hover;
   if (!hover || !hover.isValid) return;
@@ -138,24 +157,25 @@ function drawHoverPreview(ctx) {
   const gx = hover.gridX;
   const gy = hover.gridY;
 
+  ctx.save();
+
   if (hover.tool === "trap") {
     const x = gx * GRID_SIZE;
     const y = gy * GRID_SIZE;
-    ctx.save();
     ctx.strokeStyle = "rgba(249, 115, 22, 0.8)";
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
-    ctx.restore();
+
   } else if (hover.tool === "powerup") {
     const cx = gx * GRID_SIZE + GRID_SIZE / 2;
     const cy = gy * GRID_SIZE + GRID_SIZE / 2;
     const r = GRID_SIZE * 0.3;
-    ctx.save();
     ctx.strokeStyle = "rgba(34, 197, 94, 0.8)";
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.restore();
   }
+
+  ctx.restore();
 }

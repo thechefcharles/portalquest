@@ -334,25 +334,199 @@ export function moveSelectedEntity(dx, dy) {
   }
 }
 
+// ===== Overlap helpers =====
+
+function rectsOverlap(a, b) {
+  return (
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+  );
+}
+
+function rectFromEntity(kind, entity) {
+  if (!entity) return null;
+
+  // Rect types
+  if (
+    kind === "obstacle" ||
+    kind === "trap" ||
+    kind === "door" ||
+    kind === "switch" ||
+    kind === "enemy"
+  ) {
+    return { x: entity.x, y: entity.y, w: entity.w, h: entity.h };
+  }
+
+  // Circles (keys, powerups, portal) → approximate with box
+  if (kind === "key" || kind === "powerup") {
+    const r = entity.r || GRID_SIZE * 0.3;
+    return { x: entity.x - r, y: entity.y - r, w: r * 2, h: r * 2 };
+  }
+
+  if (kind === "portal") {
+    const r = entity.r || PORTAL_RADIUS;
+    return { x: entity.x - r, y: entity.y - r, w: r * 2, h: r * 2 };
+  }
+
+  // Spawn uses one tile
+  if (kind === "spawn") {
+    return { x: entity.x, y: entity.y, w: GRID_SIZE, h: GRID_SIZE };
+  }
+
+  return null;
+}
+
+function hasOverlapAt(level, sel, targetRect) {
+  if (!targetRect) return false;
+
+  // Spawn (single)
+  if (sel.kind !== "spawn" && level.start) {
+    const spawnRect = rectFromEntity("spawn", level.start);
+    if (rectsOverlap(targetRect, spawnRect)) return true;
+  }
+
+  // Portal (single)
+  if (sel.kind !== "portal" && level.portal) {
+    const portalRect = rectFromEntity("portal", level.portal);
+    if (rectsOverlap(targetRect, portalRect)) return true;
+  }
+
+  // Arrays
+  const arrays = [
+    ["obstacle", level.obstacles],
+    ["trap",     level.traps],
+    ["powerup",  level.powerups],
+    ["key",      level.keys],
+    ["door",     level.doors],
+    ["switch",   level.switches],
+    ["enemy",    level.enemies],
+  ];
+
+  for (const [kind, arr] of arrays) {
+    if (!Array.isArray(arr)) continue;
+    for (let i = 0; i < arr.length; i++) {
+      // Skip the one we're moving
+      if (sel.kind === kind && sel.index === i) continue;
+      const r = rectFromEntity(kind, arr[i]);
+      if (!r) continue;
+      if (rectsOverlap(targetRect, r)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 /**
  * Move the selected entity to a specific grid cell (used for click-to-move).
+ * Now blocks moves that would overlap other entities, and deselects after a valid move.
  */
 export function moveSelectedEntityToGrid(gridX, gridY) {
   const level = editorState.currentLevel;
-  const sel = editorState.selectedEntity;
+  const sel   = editorState.selectedEntity;
   if (!level || !sel) return;
 
   const x = gridX * GRID_SIZE;
   const y = gridY * GRID_SIZE;
 
+  let targetRect = null;
+
   switch (sel.kind) {
     case "spawn":
-      level.start = { x, y };
+      targetRect = { x, y, w: GRID_SIZE, h: GRID_SIZE };
       break;
 
     case "portal": {
+      const r  = (level.portal && level.portal.r) || PORTAL_RADIUS;
       const cx = x + GRID_SIZE / 2;
       const cy = y + GRID_SIZE / 2;
+      targetRect = { x: cx - r, y: cy - r, w: 2 * r, h: 2 * r };
+      break;
+    }
+
+    case "obstacle": {
+      const o = (level.obstacles || [])[sel.index];
+      if (!o) return;
+      targetRect = { x, y, w: o.w, h: o.h };
+      break;
+    }
+
+    case "trap": {
+      const t = (level.traps || [])[sel.index];
+      if (!t) return;
+      targetRect = { x, y, w: t.w, h: t.h };
+      break;
+    }
+
+    case "powerup": {
+      const p = (level.powerups || [])[sel.index];
+      if (!p) return;
+      const r  = p.r || GRID_SIZE * 0.3;
+      const cx = x + GRID_SIZE / 2;
+      const cy = y + GRID_SIZE / 2;
+      targetRect = { x: cx - r, y: cy - r, w: 2 * r, h: 2 * r };
+      break;
+    }
+
+    case "key": {
+      const k = (level.keys || [])[sel.index];
+      if (!k) return;
+      const r  = k.r || GRID_SIZE * 0.3;
+      const cx = x + GRID_SIZE / 2;
+      const cy = y + GRID_SIZE / 2;
+      targetRect = { x: cx - r, y: cy - r, w: 2 * r, h: 2 * r };
+      break;
+    }
+
+    case "door": {
+      const d = (level.doors || [])[sel.index];
+      if (!d) return;
+      targetRect = { x, y, w: d.w, h: d.h };
+      break;
+    }
+
+    case "switch": {
+      const s = (level.switches || [])[sel.index];
+      if (!s) return;
+      const w  = s.w;
+      const h  = s.h;
+      const nx = x + (GRID_SIZE - w) / 2;
+      const ny = y + (GRID_SIZE - h) / 2;
+      targetRect = { x: nx, y: ny, w, h };
+      break;
+    }
+
+    case "enemy": {
+      const e = (level.enemies || [])[sel.index];
+      if (!e) return;
+      const nx = x + (GRID_SIZE - e.w) / 2;
+      const ny = y + (GRID_SIZE - e.h) / 2;
+      targetRect = { x: nx, y: ny, w: e.w, h: e.h };
+      break;
+    }
+
+    default:
+      return;
+  }
+
+  // If moving here would overlap anything else → abort
+  if (hasOverlapAt(level, sel, targetRect)) {
+    // console.log('[Editor] Move blocked due to overlap');
+    return;
+  }
+
+  // Apply the move now that we know it's valid
+  switch (sel.kind) {
+    case "spawn":
+      level.start = { x: targetRect.x, y: targetRect.y };
+      break;
+
+    case "portal": {
+      const cx = targetRect.x + targetRect.w / 2;
+      const cy = targetRect.y + targetRect.h / 2;
       level.portal = {
         x: cx,
         y: cy,
@@ -364,24 +538,24 @@ export function moveSelectedEntityToGrid(gridX, gridY) {
     case "obstacle": {
       const o = (level.obstacles || [])[sel.index];
       if (!o) return;
-      o.x = x;
-      o.y = y;
+      o.x = targetRect.x;
+      o.y = targetRect.y;
       break;
     }
 
     case "trap": {
       const t = (level.traps || [])[sel.index];
       if (!t) return;
-      t.x = x;
-      t.y = y;
+      t.x = targetRect.x;
+      t.y = targetRect.y;
       break;
     }
 
     case "powerup": {
       const p = (level.powerups || [])[sel.index];
       if (!p) return;
-      const cx = x + GRID_SIZE / 2;
-      const cy = y + GRID_SIZE / 2;
+      const cx = targetRect.x + targetRect.w / 2;
+      const cy = targetRect.y + targetRect.h / 2;
       p.x = cx;
       p.y = cy;
       break;
@@ -390,8 +564,8 @@ export function moveSelectedEntityToGrid(gridX, gridY) {
     case "key": {
       const k = (level.keys || [])[sel.index];
       if (!k) return;
-      const cx = x + GRID_SIZE / 2;
-      const cy = y + GRID_SIZE / 2;
+      const cx = targetRect.x + targetRect.w / 2;
+      const cy = targetRect.y + targetRect.h / 2;
       k.x = cx;
       k.y = cy;
       break;
@@ -400,35 +574,35 @@ export function moveSelectedEntityToGrid(gridX, gridY) {
     case "door": {
       const d = (level.doors || [])[sel.index];
       if (!d) return;
-      d.x = x;
-      d.y = y;
+      d.x = targetRect.x;
+      d.y = targetRect.y;
       break;
     }
 
     case "switch": {
       const s = (level.switches || [])[sel.index];
       if (!s) return;
-      const w = s.w;
-      const h = s.h;
-      s.x = x + (GRID_SIZE - w) / 2;
-      s.y = y + (GRID_SIZE - h) / 2;
+      s.x = targetRect.x;
+      s.y = targetRect.y;
       break;
     }
 
     case "enemy": {
       const e = (level.enemies || [])[sel.index];
       if (!e) return;
-      const nx = x + (GRID_SIZE - e.w) / 2;
-      const ny = y + (GRID_SIZE - e.h) / 2;
-      const dx = nx - e.x;
-      const dy = ny - e.y;
-      e.x = nx;
-      e.y = ny;
+      e.x = targetRect.x;
+      e.y = targetRect.y;
+
       if (e.type === "spinner" && typeof e.cx === "number" && typeof e.cy === "number") {
-        e.cx += dx;
-        e.cy += dy;
+        const cx = targetRect.x + targetRect.w / 2;
+        const cy = targetRect.y + targetRect.h / 2;
+        e.cx = cx;
+        e.cy = cy;
       }
       break;
     }
   }
+
+  // After a successful move, deselect
+  editorState.selectedEntity = null;
 }
