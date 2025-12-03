@@ -1,194 +1,182 @@
 // src/editor/editorPlacementValidator.js
+// Centralized placement validation for the Level Creator.
+// Nothing is allowed to overlap anything else.
+
 import { GRID_SIZE, PORTAL_RADIUS } from "../core/config.js";
-import { rectOverlap, circleOverlap, rectCircleOverlap } from "../core/geometry.js";
+
+/* ---------- Rect helpers ---------- */
+
+function rectsOverlap(a, b) {
+  return (
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+  );
+}
+
+function inBounds(level, rect) {
+  const w = level.width ?? GRID_SIZE * 30;
+  const h = level.height ?? GRID_SIZE * 20;
+  return (
+    rect.x >= 0 &&
+    rect.y >= 0 &&
+    rect.x + rect.w <= w &&
+    rect.y + rect.h <= h
+  );
+}
 
 /**
- * Build arrays of rect and circle shapes for existing level entities.
- * Used to test candidate placements for overlaps.
+ * Build a rectangle for an existing entity so we can test overlaps.
  */
-function buildLevelShapes(level) {
-  const rects = [];
-  const circles = [];
+function rectForExistingEntity(kind, entity) {
+  if (!entity) return null;
 
-  if (!level) return { rects, circles };
+  switch (kind) {
+    case "obstacle":
+    case "trap":
+    case "door":
+    case "switch":
+    case "enemy":
+      return { x: entity.x, y: entity.y, w: entity.w, h: entity.h };
 
-  // Obstacles (walls)
-  (level.obstacles || []).forEach((o, i) => {
-    rects.push({ kind: "obstacle", index: i, x: o.x, y: o.y, w: o.w, h: o.h });
-  });
-
-  // Doors
-  (level.doors || []).forEach((d, i) => {
-    rects.push({ kind: "door", index: i, x: d.x, y: d.y, w: d.w, h: d.h });
-  });
-
-  // Switches
-  (level.switches || []).forEach((s, i) => {
-    rects.push({ kind: "switch", index: i, x: s.x, y: s.y, w: s.w, h: s.h });
-  });
-
-  // Traps
-  (level.traps || []).forEach((t, i) => {
-    rects.push({ kind: "trap", index: i, x: t.x, y: t.y, w: t.w, h: t.h });
-  });
-
-  // Enemies
-  (level.enemies || []).forEach((e, i) => {
-    if (e.type === "spinner") {
-      const w = e.radius * 2;
-      const h = e.radius * 2;
-      rects.push({
-        kind: "enemy_spinner",
-        index: i,
-        x: e.cx - w / 2,
-        y: e.cy - h / 2,
-        w,
-        h,
-      });
-    } else {
-      rects.push({ kind: "enemy", index: i, x: e.x, y: e.y, w: e.w, h: e.h });
+    case "powerup": {
+      const r = entity.r || GRID_SIZE * 0.3;
+      return { x: entity.x - r, y: entity.y - r, w: r * 2, h: r * 2 };
     }
-  });
 
-  // Spawn (player start) – rect
+    case "key": {
+      const r = entity.r || GRID_SIZE * 0.3;
+      return { x: entity.x - r, y: entity.y - r, w: r * 2, h: r * 2 };
+    }
+
+    case "portal": {
+      const r = entity.r || PORTAL_RADIUS;
+      return { x: entity.x - r, y: entity.y - r, w: r * 2, h: r * 2 };
+    }
+
+    case "spawn":
+      return { x: entity.x, y: entity.y, w: GRID_SIZE, h: GRID_SIZE };
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * Check the proposed rect against ALL existing entities in the level.
+ */
+function canPlaceRect(level, rect) {
+  if (!inBounds(level, rect)) return false;
+
+  // Spawn
   if (level.start) {
-    rects.push({
-      kind: "spawn",
-      index: 0,
-      x: level.start.x,
-      y: level.start.y,
-      w: GRID_SIZE,
-      h: GRID_SIZE,
-    });
+    const r = rectForExistingEntity("spawn", level.start);
+    if (r && rectsOverlap(rect, r)) return false;
   }
 
-  // Portal – circle
+  // Portal
   if (level.portal) {
-    circles.push({
-      kind: "portal",
-      index: 0,
-      cx: level.portal.x,
-      cy: level.portal.y,
-      r: level.portal.r || PORTAL_RADIUS,
-    });
+    const r = rectForExistingEntity("portal", level.portal);
+    if (r && rectsOverlap(rect, r)) return false;
   }
 
-  // Keys – circle
-  (level.keys || []).forEach((k, i) => {
-    circles.push({
-      kind: "key",
-      index: i,
-      cx: k.x,
-      cy: k.y,
-      r: k.r || 10,
-    });
-  });
-
-  // Powerups – circle
-  (level.powerups || []).forEach((p, i) => {
-    circles.push({
-      kind: "powerup",
-      index: i,
-      cx: p.x,
-      cy: p.y,
-      r: p.r || 10,
-    });
-  });
-
-  return { rects, circles };
-}
-
-/**
- * Check if a candidate rect overlaps anything in the level.
- */
-function rectOverlapsLevel(level, candidate) {
-  const { rects, circles } = buildLevelShapes(level);
-
-  // Rect vs rect
-  for (const r of rects) {
-    if (rectOverlap(candidate, r)) return true;
+  const obstacles = level.obstacles || [];
+  for (const o of obstacles) {
+    const r = rectForExistingEntity("obstacle", o);
+    if (r && rectsOverlap(rect, r)) return false;
   }
 
-  // Rect vs circle
-  for (const c of circles) {
-    if (rectCircleOverlap(candidate, c)) return true;
+  const traps = level.traps || [];
+  for (const t of traps) {
+    const r = rectForExistingEntity("trap", t);
+    if (r && rectsOverlap(rect, r)) return false;
   }
 
-  return false;
-}
-
-/**
- * Check if a candidate circle overlaps anything in the level.
- */
-function circleOverlapsLevel(level, candidate) {
-  const { rects, circles } = buildLevelShapes(level);
-
-  // Circle vs rect
-  for (const r of rects) {
-    if (rectCircleOverlap(r, candidate)) return true;
+  const powerups = level.powerups || [];
+  for (const p of powerups) {
+    const r = rectForExistingEntity("powerup", p);
+    if (r && rectsOverlap(rect, r)) return false;
   }
 
-  // Circle vs circle
-  for (const c of circles) {
-    if (circleOverlap(candidate, c)) return true;
+  const keys = level.keys || [];
+  for (const k of keys) {
+    const r = rectForExistingEntity("key", k);
+    if (r && rectsOverlap(rect, r)) return false;
   }
 
-  return false;
-}
+  const doors = level.doors || [];
+  for (const d of doors) {
+    const r = rectForExistingEntity("door", d);
+    if (r && rectsOverlap(rect, r)) return false;
+  }
 
-// ===== Public API =====
+  const switches = level.switches || [];
+  for (const s of switches) {
+    const r = rectForExistingEntity("switch", s);
+    if (r && rectsOverlap(rect, r)) return false;
+  }
 
-export function canPlaceWallAtGrid(level, gridX, gridY) {
-  if (!level) return false;
-  const x = gridX * GRID_SIZE;
-  const y = gridY * GRID_SIZE;
-  const candidate = { x, y, w: GRID_SIZE, h: GRID_SIZE };
-  return !rectOverlapsLevel(level, candidate);
-}
-
-export function canPlaceSpawnAtGrid(level, gridX, gridY) {
-  if (!level) return false;
-  const x = gridX * GRID_SIZE;
-  const y = gridY * GRID_SIZE;
-  const candidate = { x, y, w: GRID_SIZE, h: GRID_SIZE };
-  return !rectOverlapsLevel(level, candidate);
-}
-
-export function canPlacePortalAtGrid(level, gridX, gridY) {
-  if (!level) return false;
-  const cx = gridX * GRID_SIZE + GRID_SIZE / 2;
-  const cy = gridY * GRID_SIZE + GRID_SIZE / 2;
-  const candidate = { cx, cy, r: PORTAL_RADIUS };
-  return !circleOverlapsLevel(level, candidate);
-}
-
-// NEW: canPlaceTrapAtGrid
-export function canPlaceTrapAtGrid(level, gridX, gridY) {
-  if (!level) return false;
-
-  const size = GRID_SIZE;
-  const candidate = {
-    x: gridX * GRID_SIZE,
-    y: gridY * GRID_SIZE,
-    w: size,
-    h: size,
-  };
-
-  // Basic: don't overlap walls, doors, other traps
-  const rects = [
-    ...(level.obstacles || []),
-    ...(level.doors || []),
-    ...(level.traps || []),
-  ];
-
-  for (const r of rects) {
-    if (rectOverlap(candidate, r)) return false;
+  const enemies = level.enemies || [];
+  for (const e of enemies) {
+    const r = rectForExistingEntity("enemy", e);
+    if (r && rectsOverlap(rect, r)) return false;
   }
 
   return true;
 }
 
-// NEW: canPlacePowerupAtGrid
+/* ---------- Public per-tool validators ---------- */
+
+export function canPlaceWallAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+  const rect = {
+    x: gridX * GRID_SIZE,
+    y: gridY * GRID_SIZE,
+    w: GRID_SIZE,
+    h: GRID_SIZE,
+  };
+  return canPlaceRect(level, rect);
+}
+
+export function canPlaceSpawnAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+  const rect = {
+    x: gridX * GRID_SIZE,
+    y: gridY * GRID_SIZE,
+    w: GRID_SIZE,
+    h: GRID_SIZE,
+  };
+  return canPlaceRect(level, rect);
+}
+
+export function canPlacePortalAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+
+  const cx = gridX * GRID_SIZE + GRID_SIZE / 2;
+  const cy = gridY * GRID_SIZE + GRID_SIZE / 2;
+  const r = PORTAL_RADIUS;
+
+  const rect = {
+    x: cx - r,
+    y: cy - r,
+    w: r * 2,
+    h: r * 2,
+  };
+  return canPlaceRect(level, rect);
+}
+
+export function canPlaceTrapAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+  const rect = {
+    x: gridX * GRID_SIZE,
+    y: gridY * GRID_SIZE,
+    w: GRID_SIZE,
+    h: GRID_SIZE,
+  };
+  return canPlaceRect(level, rect);
+}
+
 export function canPlacePowerupAtGrid(level, gridX, gridY) {
   if (!level) return false;
 
@@ -196,17 +184,63 @@ export function canPlacePowerupAtGrid(level, gridX, gridY) {
   const cy = gridY * GRID_SIZE + GRID_SIZE / 2;
   const r = GRID_SIZE * 0.3;
 
-  const candidate = { cx, cy, r };
+  const rect = {
+    x: cx - r,
+    y: cy - r,
+    w: r * 2,
+    h: r * 2,
+  };
+  return canPlaceRect(level, rect);
+}
 
-  // Avoid overlap with other powerups and keys
-  const circles = [
-    ...(level.powerups || []).map((p) => ({ cx: p.x, cy: p.y, r: p.r || r })),
-    ...(level.keys || []).map((k) => ({ cx: k.x, cy: k.y, r: k.r || r })),
-  ];
+export function canPlaceKeyAtGrid(level, gridX, gridY) {
+  if (!level) return false;
 
-  for (const c of circles) {
-    if (circleOverlap(candidate, c)) return false;
-  }
+  const cx = gridX * GRID_SIZE + GRID_SIZE / 2;
+  const cy = gridY * GRID_SIZE + GRID_SIZE / 2;
+  const r = GRID_SIZE * 0.3;
 
-  return true;
+  const rect = {
+    x: cx - r,
+    y: cy - r,
+    w: r * 2,
+    h: r * 2,
+  };
+  return canPlaceRect(level, rect);
+}
+
+export function canPlaceDoorAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+
+  const rect = {
+    x: gridX * GRID_SIZE,
+    y: gridY * GRID_SIZE,
+    w: GRID_SIZE,
+    h: GRID_SIZE * 1.5, // matches placeDoorAtGrid
+  };
+  return canPlaceRect(level, rect);
+}
+
+export function canPlaceSwitchAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+
+  const w = GRID_SIZE * 0.8;
+  const h = GRID_SIZE * 0.4;
+  const x = gridX * GRID_SIZE + (GRID_SIZE - w) / 2;
+  const y = gridY * GRID_SIZE + (GRID_SIZE - h) / 2;
+
+  const rect = { x, y, w, h };
+  return canPlaceRect(level, rect);
+}
+
+export function canPlaceEnemyAtGrid(level, gridX, gridY) {
+  if (!level) return false;
+
+  const w = GRID_SIZE * 0.8;
+  const h = GRID_SIZE * 0.8;
+  const x = gridX * GRID_SIZE + (GRID_SIZE - w) / 2;
+  const y = gridY * GRID_SIZE + (GRID_SIZE - h) / 2;
+
+  const rect = { x, y, w, h };
+  return canPlaceRect(level, rect);
 }

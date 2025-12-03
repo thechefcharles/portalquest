@@ -35,7 +35,11 @@ import {
   canPlaceSpawnAtGrid,
   canPlacePortalAtGrid,
   canPlaceTrapAtGrid,      // NEW
-  canPlacePowerupAtGrid,   // NEW
+  canPlacePowerupAtGrid,
+  canPlaceKeyAtGrid,      // ✅ NEW
+  canPlaceDoorAtGrid,     // ✅ NEW
+  canPlaceSwitchAtGrid,   // ✅ NEW
+  canPlaceEnemyAtGrid,    //   // NEW
 } from './editor/editorPlacementValidator.js';
 
 import { GRID_SIZE } from './core/config.js';
@@ -1929,18 +1933,18 @@ if (editorCanvas) {
       isValid = canPlaceTrapAtGrid(level, gridX, gridY);
     } else if (tool === 'powerup') {
       isValid = canPlacePowerupAtGrid(level, gridX, gridY);
-    } else if (
-      tool === 'key' ||
-      tool === 'door' ||
-      tool === 'switch' ||
-      tool === 'enemy'
-    ) {
-      // For now: always allow; we’ll add “no overlap” rules later.
-      isValid = true;
+    } else if (tool === 'key') {
+      isValid = canPlaceKeyAtGrid(level, gridX, gridY);
+    } else if (tool === 'door') {
+      isValid = canPlaceDoorAtGrid(level, gridX, gridY);
+    } else if (tool === 'switch') {
+      isValid = canPlaceSwitchAtGrid(level, gridX, gridY);
+    } else if (tool === 'enemy') {
+      isValid = canPlaceEnemyAtGrid(level, gridX, gridY);
     }
 
     editorState.hover = { tool, gridX, gridY, isValid };
-      });
+        });
 
   editorCanvas.addEventListener('mouseleave', () => {
     editorState.hover = null;
@@ -2004,12 +2008,14 @@ if (editorCanvas) {
     } else if (tool === 'key') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlaceKeyAtGrid(level, gridX, gridY)) return;
       placeKeyAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
 
     } else if (tool === 'door') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlaceDoorAtGrid(level, gridX, gridY)) return;
       // default door type is "key" (can change later in inspector)
       placeDoorAtGrid(gridX, gridY, 'key');
       updateCreatorStatusFromLevel();
@@ -2017,16 +2023,18 @@ if (editorCanvas) {
     } else if (tool === 'switch') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlaceSwitchAtGrid(level, gridX, gridY)) return;
       placeSwitchAtGrid(gridX, gridY);
       updateCreatorStatusFromLevel();
 
     } else if (tool === 'enemy') {
       const gridX = Math.floor(x / GRID_SIZE);
       const gridY = Math.floor(y / GRID_SIZE);
+      if (!canPlaceEnemyAtGrid(level, gridX, gridY)) return;
       // default enemy type is patrol; we’ll add type controls next
       placeEnemyAtGrid(gridX, gridY, 'patrol');
       updateCreatorStatusFromLevel();
-
+      
     } else if (tool === 'select') {
       const hit = findEntityAtPixel(x, y);
       const currentSel = editorState.selectedEntity;
