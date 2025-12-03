@@ -70,7 +70,8 @@ export function createGameState() {
     doors: [],
     switches: [],
 
-    hasKey: false,
+    hasKey: false,          // old single-key flag (can keep or ignore)
+    keyCounts: {},          // NEW: inventory of keys by keyId
 
     keysDown: {},
 
@@ -123,6 +124,7 @@ function applyLevelToState(state, level) {
   state.switches = (level.switches || []).map((s) => ({ ...s }));
 
   state.hasKey = false;
+  state.keyCounts = {};
   state.gameOver = false;
   state.gameWon = false;
 }

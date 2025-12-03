@@ -170,6 +170,16 @@ const doorTypeSelect = document.getElementById('door-type-select');
 const doorIdRow = document.getElementById('door-id-row');
 const doorIdInput = document.getElementById('door-id-input');
 
+const keyIdRow = document.getElementById('key-id-row');
+const keyIdInput = document.getElementById('key-id-input');
+
+// NEW: Switch ID + Switch Door ID fields
+const switchIdRow = document.getElementById('switch-id-row');
+const switchIdInput = document.getElementById('switch-id-input');
+
+const switchDoorsRow = document.getElementById('switch-doors-row');
+const switchDoorsInput = document.getElementById('switch-doors-input');
+
 const enemyTypeRow = document.getElementById('enemy-type-row');           // NEW
 const enemyTypeSelect = document.getElementById('enemy-type-select');     // NEW
 const enemyAxisRow = document.getElementById('enemy-axis-row');           // NEW
@@ -737,7 +747,7 @@ function updatePlacementPanelForTool() {
 function updateSelectedEntityPanel() {
   if (!selectedEntityPanel) return;
 
-  const sel = editorState.selectedEntity;
+  const sel   = editorState.selectedEntity;
   const level = editorState.currentLevel;
 
   if (!sel || !level) {
@@ -747,58 +757,87 @@ function updateSelectedEntityPanel() {
 
   selectedEntityPanel.style.display = 'block';
 
-  let label = '';
-  let showTrap = false;
-  let showPowerup = false;
-  let showDoor = false;
-  let showDoorId = false;
-  let showEnemy = false;
-  let showEnemyAxis = false;
-  let showEnemyDir = false;
-  let showRectOrientation = false; // NEW
-  let showRectLength = false;      // NEW
+  // Hide everything by default
+  if (trapTypeRow)        trapTypeRow.style.display        = 'none';
+  if (powerupTypeRow)     powerupTypeRow.style.display     = 'none';
+  if (doorTypeRow)        doorTypeRow.style.display        = 'none';
+  if (enemyTypeRow)       enemyTypeRow.style.display       = 'none';
+  if (enemyAxisRow)       enemyAxisRow.style.display       = 'none';
+  if (enemyDirRow)        enemyDirRow.style.display        = 'none';
+  if (rectOrientationRow) rectOrientationRow.style.display = 'none';
+  if (rectLengthRow)      rectLengthRow.style.display      = 'none';
+  if (keyIdRow)           keyIdRow.style.display           = 'none';
+  if (doorIdRow)          doorIdRow.style.display          = 'none';
+  if (switchIdRow)        switchIdRow.style.display        = 'none';
+  if (switchDoorsRow)     switchDoorsRow.style.display     = 'none';
 
+  let label = '';
+
+  let showTrap            = false;
+  let showPowerup         = false;
+  let showDoor            = false;
+  let showEnemy           = false;
+  let showEnemyAxis       = false;
+  let showEnemyDir        = false;
+  let showRectOrientation = false;
+  let showRectLength      = false;
+  let showKeyId           = false;        // key.keyId
+  let showKeyDoorId       = false;        // door.keyDoorId
+  let showSwitchId        = false;        // switch.switchId
+  let showSwitchDoorId    = false;        // door.switchDoorId
+
+  /* ───────── Traps ───────── */
   if (sel.kind === 'trap') {
-    label = 'Trap';
+    label    = 'Trap';
     showTrap = true;
 
     const traps = level.traps || [];
-    const t = traps[sel.index];
+    const t     = traps[sel.index];
     if (t && trapTypeSelect) {
       const validTypes = ['glue', 'fire', 'poison', 'spike'];
-      const type = validTypes.includes(t.type) ? t.type : 'spike';
+      const type       = validTypes.includes(t.type) ? t.type : 'spike';
       trapTypeSelect.value = type;
     }
 
+  /* ───────── Powerups ───────── */
   } else if (sel.kind === 'powerup') {
-    label = 'Powerup';
+    label       = 'Powerup';
     showPowerup = true;
 
     const powerups = level.powerups || [];
-    const p = powerups[sel.index];
+    const p        = powerups[sel.index];
     if (p && powerupTypeSelect) {
       const validTypes = ['speed', 'shield', 'dash'];
-      const type = validTypes.includes(p.type) ? p.type : 'speed';
+      const type       = validTypes.includes(p.type) ? p.type : 'speed';
       powerupTypeSelect.value = type;
     }
 
+  /* ───────── Doors (Key Door ID / Switch Door ID) ───────── */
   } else if (sel.kind === 'door') {
-    label = 'Door';
-    showDoor = true;
+    label               = 'Door';
+    showDoor            = true;
     showRectOrientation = true;
-    showRectLength = true;
+    showRectLength      = true;
 
     const doors = level.doors || [];
-    const d = doors[sel.index];
+    const d     = doors[sel.index];
+
     if (d && doorTypeSelect) {
       const validTypes = ['key', 'switch'];
-      const type = validTypes.includes(d.type) ? d.type : 'key';
+      const type       = validTypes.includes(d.type) ? d.type : 'key';
+
+      d.type = type; // normalize
       doorTypeSelect.value = type;
 
-      if (type === 'switch') {
-        showDoorId = true;
+      if (type === 'key') {
+        showKeyDoorId = true;
         if (doorIdInput) {
-          doorIdInput.value = d.doorId || '';
+          doorIdInput.value = d.keyDoorId || '';
+        }
+      } else if (type === 'switch') {
+        showSwitchDoorId = true;
+        if (switchDoorsInput) {
+          switchDoorsInput.value = d.switchDoorId || '';
         }
       }
     }
@@ -809,36 +848,40 @@ function updateSelectedEntityPanel() {
       rectOrientationSelect.value = horizontal ? 'horizontal' : 'vertical';
 
       const tileSize = GRID_SIZE;
-      const tiles = horizontal ? Math.round(d.w / tileSize) : Math.round(d.h / tileSize);
+      const tiles    = horizontal
+        ? Math.round(d.w / tileSize)
+        : Math.round(d.h / tileSize);
+
       rectLengthInput.value = tiles > 0 ? tiles : 1;
     }
 
+  /* ───────── Enemies ───────── */
   } else if (sel.kind === 'enemy') {
-    label = 'Enemy';
+    label     = 'Enemy';
     showEnemy = true;
 
     const enemies = level.enemies || [];
-    const e = enemies[sel.index];
+    const e       = enemies[sel.index];
     if (e && enemyTypeSelect) {
       const validTypes = ['patrol', 'chaser', 'spinner'];
-      const type = validTypes.includes(e.type) ? e.type : 'patrol';
+      const type       = validTypes.includes(e.type) ? e.type : 'patrol';
       enemyTypeSelect.value = type;
 
       if (type === 'patrol') {
         showEnemyAxis = true;
-        showEnemyDir = true;
+        showEnemyDir  = true;
 
         const axis = e.axis === 'vertical' ? 'vertical' : 'horizontal';
         if (enemyAxisSelect) {
           enemyAxisSelect.value = axis;
         }
 
-        // Determine direction from vx sign and axis
         let dir = 'right';
         const vx = e.vx ?? 1.5;
+
         if (axis === 'horizontal') {
           dir = vx >= 0 ? 'right' : 'left';
-          if (enemyDirSelect) {
+          if (enemyDirRow && enemyDirSelect) {
             enemyDirSelect.innerHTML = `
               <option value="right">Right</option>
               <option value="left">Left</option>
@@ -846,19 +889,21 @@ function updateSelectedEntityPanel() {
           }
         } else {
           dir = vx >= 0 ? 'down' : 'up';
-          if (enemyDirSelect) {
+          if (enemyDirRow && enemyDirSelect) {
             enemyDirSelect.innerHTML = `
               <option value="down">Down</option>
               <option value="up">Up</option>
             `;
           }
         }
+
         if (enemyDirSelect) {
           enemyDirSelect.value = dir;
         }
       }
     }
 
+  /* ───────── Spawn / Portal / Wall ───────── */
   } else if (sel.kind === 'spawn') {
     label = 'Player Spawn';
 
@@ -866,56 +911,69 @@ function updateSelectedEntityPanel() {
     label = 'Portal';
 
   } else if (sel.kind === 'obstacle') {
-    label = 'Wall';
+    label               = 'Wall';
     showRectOrientation = true;
-    showRectLength = true;
+    showRectLength      = true;
 
     const obstacles = level.obstacles || [];
-    const o = obstacles[sel.index];
+    const o         = obstacles[sel.index];
     if (o && rectOrientationSelect && rectLengthInput) {
       const horizontal = o.w >= o.h;
       rectOrientationSelect.value = horizontal ? 'horizontal' : 'vertical';
 
       const tileSize = GRID_SIZE;
-      const tiles = horizontal ? Math.round(o.w / tileSize) : Math.round(o.h / tileSize);
+      const tiles    = horizontal
+        ? Math.round(o.w / tileSize)
+        : Math.round(o.h / tileSize);
+
       rectLengthInput.value = tiles > 0 ? tiles : 1;
+    }
+
+  /* ───────── Keys (Key ID) ───────── */
+  } else if (sel.kind === 'key') {
+    label    = 'Key';
+    showKeyId = true;
+
+    const keys = level.keys || [];
+    const k    = keys[sel.index];
+    if (k && keyIdInput) {
+      keyIdInput.value = k.keyId || '';
+    }
+
+  /* ───────── Switches (Switch ID) ───────── */
+  } else if (sel.kind === 'switch') {
+    label        = 'Switch';
+    showSwitchId = true;
+
+    const switches = level.switches || [];
+    const sw       = switches[sel.index];
+    if (sw && switchIdInput) {
+      switchIdInput.value = sw.switchId || '';
     }
 
   } else {
     label = sel.kind;
   }
 
+  // Label text
   if (selectedEntityKindEl) {
     selectedEntityKindEl.textContent = label;
   }
 
-  if (trapTypeRow) {
-    trapTypeRow.style.display = showTrap ? 'flex' : 'none';
-  }
-  if (powerupTypeRow) {
-    powerupTypeRow.style.display = showPowerup ? 'flex' : 'none';
-  }
-  if (doorTypeRow) {
-    doorTypeRow.style.display = showDoor ? 'flex' : 'none';
-  }
-  if (doorIdRow) {
-    doorIdRow.style.display = showDoorId ? 'flex' : 'none';
-  }
-  if (enemyTypeRow) {
-    enemyTypeRow.style.display = showEnemy ? 'flex' : 'none';
-  }
-  if (enemyAxisRow) {
-    enemyAxisRow.style.display = showEnemyAxis ? 'flex' : 'none';
-  }
-  if (enemyDirRow) {
-    enemyDirRow.style.display = showEnemyDir ? 'flex' : 'none';
-  }
-  if (rectOrientationRow) {
-    rectOrientationRow.style.display = showRectOrientation ? 'flex' : 'none';
-  }
-  if (rectLengthRow) {
-    rectLengthRow.style.display = showRectLength ? 'flex' : 'none';
-  }
+  // Apply visibility
+  if (trapTypeRow)        trapTypeRow.style.display        = showTrap ? 'flex' : 'none';
+  if (powerupTypeRow)     powerupTypeRow.style.display     = showPowerup ? 'flex' : 'none';
+  if (doorTypeRow)        doorTypeRow.style.display        = showDoor ? 'flex' : 'none';
+  if (enemyTypeRow)       enemyTypeRow.style.display       = showEnemy ? 'flex' : 'none';
+  if (enemyAxisRow)       enemyAxisRow.style.display       = showEnemyAxis ? 'flex' : 'none';
+  if (enemyDirRow)        enemyDirRow.style.display        = showEnemyDir ? 'flex' : 'none';
+  if (rectOrientationRow) rectOrientationRow.style.display = showRectOrientation ? 'flex' : 'none';
+  if (rectLengthRow)      rectLengthRow.style.display      = showRectLength ? 'flex' : 'none';
+
+  if (keyIdRow)           keyIdRow.style.display           = showKeyId ? 'flex' : 'none';
+  if (switchIdRow)        switchIdRow.style.display        = showSwitchId ? 'flex' : 'none';
+  if (doorIdRow)          doorIdRow.style.display          = showKeyDoorId ? 'flex' : 'none';
+  if (switchDoorsRow)     switchDoorsRow.style.display     = showSwitchDoorId ? 'flex' : 'none';
 }
 function showEndTestButton(show) {
   if (!endTestBtn) return;
@@ -1123,19 +1181,24 @@ if (toolPowerupBtn) {
 
 if (doorTypeSelect) {
   doorTypeSelect.addEventListener('change', (e) => {
-    const sel = editorState.selectedEntity;
+    const sel   = editorState.selectedEntity;
     const level = editorState.currentLevel;
     if (!sel || sel.kind !== 'door') return;
 
-    const d = level.doors[sel.index];
+    const d = (level.doors || [])[sel.index];
     if (!d) return;
 
-    d.type = e.target.value;
+    const newType = e.target.value === 'switch' ? 'switch' : 'key';
+    d.type = newType;
 
-    // If switching to key door, remove doorId
-    if (d.type === 'key') {
-      d.doorId = null;
-      doorIdRow.style.display = 'none';
+    if (newType === 'key') {
+      // keep keyDoorId, clear switchDoorId
+      d.keyDoorId    = d.keyDoorId || '';
+      d.switchDoorId = null;
+    } else {
+      // keep switchDoorId, clear keyDoorId
+      d.switchDoorId = d.switchDoorId || '';
+      d.keyDoorId    = null;
     }
 
     updateCreatorStatusFromLevel();
@@ -1144,17 +1207,66 @@ if (doorTypeSelect) {
 }
 
 
-
+// Key Door ID input → door.keyDoorId (key doors only)
 if (doorIdInput) {
   doorIdInput.addEventListener('input', (e) => {
-    const sel = editorState.selectedEntity;
     const level = editorState.currentLevel;
-    if (!sel || sel.kind !== 'door') return;
+    const sel   = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'door') return;
 
-    const d = level.doors[sel.index];
-    if (!d) return;
+    const doors = level.doors || [];
+    const d     = doors[sel.index];
+    if (!d || d.type !== 'key') return;
 
-    d.doorId = e.target.value.trim();
+    d.keyDoorId = e.target.value.trim() || null;
+    updateCreatorStatusFromLevel();
+  });
+}
+
+// Key ID input → key.keyId
+if (keyIdInput) {
+  keyIdInput.addEventListener('input', (e) => {
+    const level = editorState.currentLevel;
+    const sel   = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'key') return;
+
+    const keys = level.keys || [];
+    const k = keys[sel.index];
+    if (!k) return;
+
+    k.keyId = e.target.value.trim() || null;
+    updateCreatorStatusFromLevel();
+  });
+}
+
+// Switch ID input → switch.switchId
+if (switchIdInput) {
+  switchIdInput.addEventListener('input', (e) => {
+    const level = editorState.currentLevel;
+    const sel   = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'switch') return;
+
+    const switches = level.switches || [];
+    const sw = switches[sel.index];
+    if (!sw) return;
+
+    sw.switchId = e.target.value.trim() || null;
+    updateCreatorStatusFromLevel();
+  });
+}
+
+// Switch Door ID input → door.switchDoorId (switch doors only)
+if (switchDoorsInput) {
+  switchDoorsInput.addEventListener('input', (e) => {
+    const level = editorState.currentLevel;
+    const sel   = editorState.selectedEntity;
+    if (!level || !sel || sel.kind !== 'door') return;
+
+    const doors = level.doors || [];
+    const d     = doors[sel.index];
+    if (!d || d.type !== 'switch') return;
+
+    d.switchDoorId = e.target.value.trim() || null;
     updateCreatorStatusFromLevel();
   });
 }

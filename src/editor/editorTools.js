@@ -106,6 +106,7 @@ export function placeKeyAtGrid(gridX, gridY) {
 }
 
 // Place a door at the given grid cell
+// Place a door at the given grid cell
 export function placeDoorAtGrid(gridX, gridY, type = "key") {
   const level = editorState.currentLevel;
   if (!level) return;
@@ -115,12 +116,14 @@ export function placeDoorAtGrid(gridX, gridY, type = "key") {
 
   level.doors = level.doors || [];
   level.doors.push({
-    type,              // "key" OR "switch"
-    doorId: null,      // can be set later in selected entity panel
+    type,            // "key" OR "switch"
+    keyDoorId: null, // used when type === "key"
+    switchDoorId: null, // used when type === "switch"
     x,
     y,
     w: GRID_SIZE,
     h: GRID_SIZE * 1.5,
+    isOpen: false,   // useful later for switch doors
   });
 }
 

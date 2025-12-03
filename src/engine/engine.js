@@ -114,17 +114,16 @@ function updatePlayerMovementAndWalls(state, dt) {
   }
 
   // Collide with doors (key + switch doors)
+  const keyCounts = state.keyCounts || (state.keyCounts = {});
+
   for (let i = state.doors.length - 1; i >= 0; i--) {
     const door = state.doors[i];
     if (!rectsOverlap(player, door)) continue;
 
-    const isSwitchDoor = door.type === "switch";
-    const isKeyDoor = !door.type || door.type === "key";
+    const movedHorizontally = player.x !== oldX;
+    const movedVertically   = player.y !== oldY;
 
-    if (isSwitchDoor) {
-      // Always behaves like a wall; switches open them
-      const movedHorizontally = player.x !== oldX;
-      const movedVertically = player.y !== oldY;
+    const blockAsWall = () => {
       if (movedHorizontally && !movedVertically) {
         player.x = oldX;
       } else if (!movedHorizontally && movedVertically) {
@@ -133,29 +132,49 @@ function updatePlayerMovementAndWalls(state, dt) {
         player.x = oldX;
         player.y = oldY;
       }
+    };
+
+    const isSwitchDoor = door.type === 'switch';
+    const isKeyDoor    = !door.type || door.type === 'key';
+
+    // SWITCH DOORS: for now always closed (solid)
+    if (isSwitchDoor) {
+      blockAsWall();
       continue;
     }
 
+    // KEY DOORS: require a matching key in inventory
     if (isKeyDoor) {
-      if (state.hasKey) {
-        // Unlock this door using the key
-        state.hasKey = false;
-        state.doors.splice(i, 1);
-        // Allow player to pass through (no position reset)
-      } else {
-        // No key → treat door as wall
-        const movedHorizontally = player.x !== oldX;
-        const movedVertically = player.y !== oldY;
-        if (movedHorizontally && !movedVertically) {
-          player.x = oldX;
-        } else if (!movedHorizontally && movedVertically) {
-          player.y = oldY;
-        } else {
-          player.x = oldX;
-          player.y = oldY;
-        }
+      // Support either keyDoorId (new) or keyId (legacy) on the door
+      const id = door.keyDoorId || door.keyId || null;
+      if (!id) {
+        console.warn('[Engine] Key door missing keyId/keyDoorId; acting as wall:', door);
+        blockAsWall();
+        continue;
       }
+
+      const currentCount = keyCounts[id] || 0;
+
+      if (currentCount > 0) {
+        // Consume one key and remove the door
+        keyCounts[id] = currentCount - 1;
+        if (keyCounts[id] <= 0) {
+          delete keyCounts[id];
+        }
+
+        state.doors.splice(i, 1);
+        console.log(`[Engine] Opened key door with id="${id}". Remaining keys:`, keyCounts);
+        // do NOT block movement → player passes through
+        continue;
+      }
+
+      // No matching key → treat as wall
+      blockAsWall();
+      continue;
     }
+
+    // Any unknown door types → just block
+    blockAsWall();
   }
 }
 

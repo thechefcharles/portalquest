@@ -627,22 +627,22 @@
       </select>
     </div>
 
-    <!-- Door ID row (for switch doors) -->
+    <!-- Key Door ID row (for key doors) -->
     <div
       id="door-id-row"
       style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
     >
-      <span>Door ID:</span>
+      <span>Key Door ID:</span>
       <input
         id="door-id-input"
         type="text"
-        maxlength="10"
-        placeholder="D1"
+        maxlength="16"
+        placeholder="e.g. 1"
         style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
       />
     </div>
 
-        <!-- Orientation row (walls / doors) -->
+    <!-- Orientation row (walls / doors) -->
     <div
       id="rect-orientation-row"
       style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
@@ -672,8 +672,8 @@
         style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
       />
     </div>
-    
-        <!-- Enemy type row -->
+
+    <!-- Enemy type row -->
     <div
       id="enemy-type-row"
       style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
@@ -718,6 +718,51 @@
         <option value="right">Right</option>
         <option value="left">Left</option>
       </select>
+    </div>
+
+    <!-- Key ID row (for selected keys) -->
+    <div
+      id="key-id-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Key ID:</span>
+      <input
+        id="key-id-input"
+        type="text"
+        maxlength="16"
+        placeholder="e.g. 1"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+
+    <!-- Switch ID row (for selected switches) -->
+    <div
+      id="switch-id-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Switch ID:</span>
+      <input
+        id="switch-id-input"
+        type="text"
+        maxlength="16"
+        placeholder="e.g. A"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
+    </div>
+
+    <!-- Switch Door ID row (for switch doors) -->
+    <div
+      id="switch-doors-row"
+      style="display:none; align-items:center; justify-content:space-between; gap: 6px; margin-bottom: 4px;"
+    >
+      <span>Switch Door ID:</span>
+      <input
+        id="switch-doors-input"
+        type="text"
+        maxlength="16"
+        placeholder="e.g. A"
+        style="flex:1; padding: 3px 6px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:12px;"
+      />
     </div>
   </div> <!-- end of selected-entity-panel -->
 

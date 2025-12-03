@@ -1,5 +1,4 @@
 // src/engine/systems/logicSystem.js
-// Handles keys, doors, and switches logic
 
 function distance(x1, y1, x2, y2) {
   const dx = x2 - x1;
@@ -9,11 +8,12 @@ function distance(x1, y1, x2, y2) {
 
 export function updateLogic(state, dt) {
   updateKeys(state);
-  updateSwitches(state);
+  // We'll add updateSwitches(state) later
 }
 
-// --- Keys ---
-
+/* ===========================
+   KEYS → KEY COUNTS (by keyId)
+   =========================== */
 function updateKeys(state) {
   const { player, keys } = state;
   if (!keys || keys.length === 0) return;
@@ -21,13 +21,25 @@ function updateKeys(state) {
   const px = player.x + player.w / 2;
   const py = player.y + player.h / 2;
 
+  if (!state.keyCounts) state.keyCounts = {};
+
   for (let i = keys.length - 1; i >= 0; i--) {
     const k = keys[i];
-    const d = distance(px, py, k.x, k.y);
     const r = k.r || 10;
+    const d = distance(px, py, k.x, k.y);
 
     if (d < r + Math.min(player.w, player.h) / 2) {
-      state.hasKey = true;
+      // Pick up key
+      if (k.keyId) {
+        state.keyCounts[k.keyId] = (state.keyCounts[k.keyId] || 0) + 1;
+        console.log(
+          `[Logic] Picked up keyId="${k.keyId}", now have:`,
+          state.keyCounts
+        );
+      } else {
+        console.warn('[Logic] Picked up a key without keyId:', k);
+      }
+
       keys.splice(i, 1);
       state.score += 50;
     }

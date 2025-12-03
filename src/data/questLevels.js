@@ -154,26 +154,26 @@ const LEVEL_2 = {
     },
   ],
 
-  doors: [
-    // Key door on right-center, clear of pillar
-    {
-      type: "key",
-      doorId: "D1",
-      x: CANVAS_WIDTH / 2 + 100,
-      y: 220,          // 220–280, pillar is 180–260 at center, so separated in X
-      w: 20,
-      h: 60,
-    },
-    // Switch door further right, above mid corridor
-    {
-      type: "switch",
-      doorId: "D2",
-      x: CANVAS_WIDTH - 180,
-      y: 180,          // 180–260, clear of top rail (140–160)
-      w: 20,
-      h: 80,
-    },
-  ],
+doors: [
+  {
+    type: "key",
+    keyId: "1",       // still ok, engine supports this
+    keyDoorId: "1",   // NEW – explicit key door id
+    x: CANVAS_WIDTH / 2 + 100,
+    y: 220,
+    w: 20,
+    h: 60,
+  },
+  {
+    type: "switch",
+    switchDoorId: "A",  // for later when we wire switches
+    x: CANVAS_WIDTH - 180,
+    y: 180,
+    w: 20,
+    h: 80,
+    isOpen: false,
+  },
+],
 
   switches: [
     // Switch down near bottom rail on the far right
