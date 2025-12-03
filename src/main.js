@@ -824,50 +824,76 @@ function updateSelectedEntityPanel() {
       powerupTypeSelect.value = type;
     }
 
-  /* ───────── Doors (Key Door ID / Switch Door ID) ───────── */
-  } else if (sel.kind === 'door') {
-    label               = 'Door';
-    showDoor            = true;
-    showRectOrientation = true;
-    showRectLength      = true;
+/* ───────── Doors (Key Door ID / Switch Door ID) ───────── */
+} else if (sel.kind === 'door') {
+  label               = 'Door';
+  showDoor            = true;
+  showRectOrientation = true;
+  showRectLength      = true;
 
-    const doors = level.doors || [];
-    const d     = doors[sel.index];
+  const doors = level.doors || [];
+  const d     = doors[sel.index];
 
-    if (d && doorTypeSelect) {
-      const validTypes = ['key', 'switch'];
-      const type       = validTypes.includes(d.type) ? d.type : 'key';
+  if (d && doorTypeSelect) {
+    const validTypes = ['key', 'switch'];
+    const type       = validTypes.includes(d.type) ? d.type : 'key';
 
-      d.type = type;  // normalize
-      doorTypeSelect.value = type;
+    // Normalize
+    d.type = type;
+    doorTypeSelect.value = type;
 
-      if (type === 'key') {
-        showKeyDoorId = true;
-        if (doorIdInput) {
-          doorIdInput.value = d.keyDoorId || '';
-        }
-      } else if (type === 'switch') {
-        showSwitchDoorId = true;
-        if (switchDoorsInput) {
-          switchDoorsInput.value = d.switchDoorId || '';
+    /* ----------------------------
+       ⭐ KEY DOOR — Show Key ID
+    -----------------------------*/
+    if (type === 'key') {
+      showKeyDoorId = true;
+
+      if (doorIdInput) {
+        // DO NOT overwrite user typing with blank
+        const current = doorIdInput.value;
+        const actual  = d.keyDoorId ?? "";
+
+        if (current !== actual) {
+          doorIdInput.value = actual;  // sync only when different
         }
       }
     }
 
-    if (d && rectOrientationSelect && rectLengthInput) {
-      const horizontal = d.w >= d.h;
-      rectOrientationSelect.value = horizontal ? 'horizontal' : 'vertical';
+    /* ----------------------------
+       ⭐ SWITCH DOOR — Show Switch ID
+    -----------------------------*/
+    else if (type === 'switch') {
+      showSwitchDoorId = true;
 
-      const tileSize = GRID_SIZE;
-      const tiles    = horizontal
-        ? Math.round(d.w / tileSize)
-        : Math.round(d.h / tileSize);
+      if (switchDoorsInput) {
+        const current = switchDoorsInput.value;
+        const actual  = d.switchDoorId ?? "";
 
-      rectLengthInput.value = tiles > 0 ? tiles : 1;
+        if (current !== actual) {
+          switchDoorsInput.value = actual;
+        }
+      }
     }
+  }
+
+  /* ----------------------------
+     ⭐ Orientation + Length Sync
+  -----------------------------*/
+  if (d && rectOrientationSelect && rectLengthInput) {
+    const horizontal = d.w >= d.h;
+    rectOrientationSelect.value = horizontal ? 'horizontal' : 'vertical';
+
+    const tileSize = GRID_SIZE;
+    const tiles = horizontal
+      ? Math.round(d.w / tileSize)
+      : Math.round(d.h / tileSize);
+
+    rectLengthInput.value = tiles > 0 ? tiles : 1;
+  }
+}
 
   /* ───────── Enemies ───────── */
-  } else if (sel.kind === 'enemy') {
+   else if (sel.kind === 'enemy') {
     label     = 'Enemy';
     showEnemy = true;
 
@@ -1365,10 +1391,23 @@ switchDoorsInput?.addEventListener("input", (e) => {
 
   const lvl = editorState.currentLevel;
   const d = lvl.doors[sel.index];
-  if (d.type !== "switch") return;
+  if (!d || d.type !== "switch") return;
 
   d.switchDoorId = e.target.value.trim() || null;
 
+  updateCreatorStatusFromLevel();
+});
+
+// ⭐ KEY DOOR ID (door.keyDoorId)
+doorIdInput?.addEventListener("input", (e) => {
+  const sel = editorState.selectedEntity;
+  if (!sel || sel.kind !== "door") return;
+
+  const lvl = editorState.currentLevel;
+  const d = lvl.doors?.[sel.index];
+  if (!d || d.type !== "key") return;
+
+  d.keyDoorId = e.target.value.trim() || "";
   updateCreatorStatusFromLevel();
 });
 
