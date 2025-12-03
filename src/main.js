@@ -657,13 +657,16 @@ function playPortalFromMyLevels(portalId) {
   const firstLevel = loadLevelById(firstId);
   if (!firstLevel || !firstLevel.data) return;
 
-  state.portalRun = {
-    type: "custom",
-    portalId: portal.id,
-    name: portal.name,
-    levelIds: portal.levelIds.slice(),
-    indexInPortal: 0,
-  };
+state.portalRun = {
+  type: "custom",
+  portalId: portal.id,
+  name: portal.name,
+  levelIds: portal.levelIds.slice(),
+  indexInPortal: 0,
+};
+
+// ⬇️ ADD THIS
+state.currentCustomLevelData = firstLevel.data;
 
   state.customTest = false;
   state.customLevelName = null;

@@ -1,6 +1,8 @@
 // src/modes/questMode.js
 import { QUEST_LEVELS } from '../data/questLevels.js';
 import { loadLevelIntoState } from '../core/state.js';
+import { loadLevelById } from '../core/levelStorage.js';
+import { loadLevelDataIntoState } from '../core/state.js';
 
 export function startQuest(state) {
   return startQuestAtLevel(state, 0);
@@ -29,15 +31,27 @@ export function restartQuest(state) {
 }
 
 export function restartCurrentLevel(state) {
-  // 🚫 In Creator Test, we don't use QUEST_LEVELS at all
+  // Creator Test handled in main.js
   if (state.mode === 'creator' && state.customTest) return;
 
   state.quest.status = 'playing';
   state.isPaused = false;
 
+  // If we're running a custom portal
+  if (state.portalRun && state.portalRun.type === "custom") {
+    const idx = state.portalRun.indexInPortal ?? 0;
+    const levelId = state.portalRun.levelIds[idx];
+    const saved = loadLevelById(levelId);
+
+    if (saved?.data) {
+      loadLevelDataIntoState(state, saved.data);
+      return;
+    }
+  }
+
+  // Fallback: official quest level
   loadLevelIntoState(state, state.quest.currentLevelIndex);
 }
-
 export function advanceQuestLevel(state) {
   const lastIndex = QUEST_LEVELS.length - 1;
 
@@ -57,25 +71,20 @@ export function advanceQuestLevel(state) {
 export function handlePlayerDeath(state) {
   const inCreatorTest = state.mode === 'creator' && state.customTest;
 
-  // 🔁 Creator Test Mode: just mark gameOver and bail.
-  // main.js → handleQuestStatusForUI will reload `lastTestLevelData`.
   if (inCreatorTest) {
     state.quest.status = 'gameOver';
     return;
   }
 
-  // 🔁 Normal Quest Mode behavior
   state.quest.lives -= 1;
 
   if (state.quest.lives <= 0) {
     state.quest.lives = 0;
-    state.quest.status = 'gameOver';
+    state.quest.status = "gameOver";
     state.isPaused = true;
     return;
   }
 
-  state.quest.status = 'playing';
-  state.isPaused = false;
-
-  loadLevelIntoState(state, state.quest.currentLevelIndex);
+  // ⭐ ALWAYS restart properly
+  restartCurrentLevel(state);
 }
