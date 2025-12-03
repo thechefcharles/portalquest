@@ -17,6 +17,9 @@ export function startQuestAtLevel(state, levelIndex) {
 }
 
 export function restartQuest(state) {
+  // 🚫 Never restart the real quest while in Creator Test
+  if (state.mode === 'creator' && state.customTest) return;
+
   state.quest.currentLevelIndex = 0;
   state.quest.lives = 3;
   state.quest.status = 'playing';
@@ -26,6 +29,9 @@ export function restartQuest(state) {
 }
 
 export function restartCurrentLevel(state) {
+  // 🚫 In Creator Test, we don't use QUEST_LEVELS at all
+  if (state.mode === 'creator' && state.customTest) return;
+
   state.quest.status = 'playing';
   state.isPaused = false;
 
@@ -49,6 +55,16 @@ export function advanceQuestLevel(state) {
 }
 
 export function handlePlayerDeath(state) {
+  const inCreatorTest = state.mode === 'creator' && state.customTest;
+
+  // 🔁 Creator Test Mode: just mark gameOver and bail.
+  // main.js → handleQuestStatusForUI will reload `lastTestLevelData`.
+  if (inCreatorTest) {
+    state.quest.status = 'gameOver';
+    return;
+  }
+
+  // 🔁 Normal Quest Mode behavior
   state.quest.lives -= 1;
 
   if (state.quest.lives <= 0) {

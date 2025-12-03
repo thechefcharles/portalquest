@@ -2268,16 +2268,19 @@ function gameLoop(timestamp) {
     renderGame(ctx, state);
     updateHUDDom(state);
     handleQuestStatusForUI(state);
-  } else if (state.mode === 'creator' && editorCtx) {
-    if (state.customTest && editorState.isTesting) {
-      // In-editor test
-      updateGame(state, delta);
-      renderGame(editorCtx, state);
-    } else {
-      // Normal editor view
-      renderEditor(editorCtx);
-    }
+} else if (state.mode === 'creator' && editorCtx) {
+  if (state.customTest && editorState.isTesting) {
+    // In-editor test
+    updateGame(state, delta);
+    renderGame(editorCtx, state);
+
+    // 🔁 Also handle quest/test status (death → auto-restart)
+    handleQuestStatusForUI(state);      // ✅ NEW
+  } else {
+    // Normal editor view
+    renderEditor(editorCtx);
   }
+}
 
   requestAnimationFrame(gameLoop);
 }
@@ -2285,8 +2288,33 @@ function gameLoop(timestamp) {
 function handleQuestStatusForUI(state) {
   if (!state.quest) return;
 
-  const status = state.quest.status;
+  const status       = state.quest.status;
+  const inCreatorTest = state.mode === 'creator' && state.customTest;
 
+  // 🔁 In CREATOR TEST MODE:
+  // If you "die" (gameOver), automatically restart the last tested level
+  // instead of showing the Game Over screen or jumping into the real quest.
+  if (inCreatorTest && status === 'gameOver') {
+    if (state.lastTestLevelData) {
+      // Reload exactly the level you were testing
+      loadLevelDataIntoState(state, state.lastTestLevelData);
+    }
+
+    // Reset basic state for a fresh run
+    state.quest.status = 'playing';
+    state.quest.lives  = 3;          // or keep whatever you want for test
+    state.isPaused     = false;
+    state.gameOver     = false;
+    state.gameWon      = false;
+
+    // Make sure no overlays are shown
+    lastQuestStatus = 'playing';
+    hideAllOverlays();
+
+    return; // ✅ stop here, nothing else to do
+  }
+
+  // Normal quest flow (non-test)
   if (status === lastQuestStatus) return;
   lastQuestStatus = status;
 
