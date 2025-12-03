@@ -112,9 +112,13 @@ const portalEditorSelectedList = document.getElementById('portalEditorSelected')
 const portalEditorSaveBtn = document.getElementById('portalEditorSave');
 const portalEditorCancelBtn = document.getElementById('portalEditorCancel');
 
-const myLevelsBtn = document.getElementById('btnMyLevels');       // NEW
-const myLevelsBackBtn = document.getElementById('btnMyLevelsBack'); // NEW
-const myLevelsList = document.getElementById('myLevelsList');     // NEW
+const myLevelsBtn      = document.getElementById('btnMyLevels');
+const myLevelsBackBtn  = document.getElementById('btnMyLevelsBack');
+const myLevelsScreenEl = document.getElementById('myLevelsScreen');
+
+const myPortalsBtn     = document.getElementById('btnMyPortals');      // NEW
+const myPortalsBackBtn = document.getElementById('btnMyPortalsBack');  // NEW
+const myPortalsScreenEl= document.getElementById('myPortalsScreen');   // NEW
 
 // NEW: Creator meta UI
 const levelNameInput = document.getElementById('level-name-input');
@@ -653,30 +657,27 @@ function playPortalFromMyLevels(portalId) {
   const firstLevel = loadLevelById(firstId);
   if (!firstLevel || !firstLevel.data) return;
 
-  // Mark this as a custom portal run
   state.portalRun = {
     type: "custom",
     portalId: portal.id,
     name: portal.name,
-    levelIds: portal.levelIds.slice(), // copy
+    levelIds: portal.levelIds.slice(),
     indexInPortal: 0,
   };
 
-  state.customTest = false;          // treat like normal quest, not test
-  state.customLevelName = null;      // HUD can show numeric or we can enhance later
+  state.customTest = false;
+  state.customLevelName = null;
   state.mode = "quest";
   state.isPaused = false;
 
-  if (!state.quest) {
-    state.quest = {};
-  }
+  if (!state.quest) state.quest = {};
   state.quest.status = "playing";
   state.quest.lives = 3;
 
   loadLevelDataIntoState(state, firstLevel.data);
 
-  const myLevelsScreen = document.getElementById('myLevelsScreen');
-  if (myLevelsScreen) myLevelsScreen.classList.add('hidden');
+  // ⬇️ THIS LINE
+  if (myPortalsScreenEl) myPortalsScreenEl.classList.add('hidden');
 
   hideAllOverlays();
   showQuestScreen();
@@ -1134,29 +1135,47 @@ if (creatorBtn) {
 if (myLevelsBtn) {
   myLevelsBtn.addEventListener('click', () => {
     renderMyLevelsList();
-    renderMyPortalsList();   // NEW
 
-    const homeScreen   = document.getElementById('homeScreen');
-    const questScreen  = document.getElementById('questScreen');
-    const creatorScreen = document.getElementById('creatorScreen');
-    const levelSelectScreen = document.getElementById('levelSelectScreen');
-    const myLevelsScreen = document.getElementById('myLevelsScreen');
+    showMainMenu(); // resets to home
+    const home = document.getElementById('homeScreen');
+    if (home) home.classList.add('hidden'); // hide home
 
-    if (homeScreen) homeScreen.classList.add('hidden');
-    if (questScreen) questScreen.classList.add('hidden');
-    if (creatorScreen) creatorScreen.classList.add('hidden');
-    if (levelSelectScreen) levelSelectScreen.classList.add('hidden');
-    if (myLevelsScreen) myLevelsScreen.classList.remove('hidden');
+    if (myLevelsScreenEl) {
+      myLevelsScreenEl.classList.remove('hidden');
+    }
   });
 }
 
 if (myLevelsBackBtn) {
   myLevelsBackBtn.addEventListener('click', () => {
-    const myLevelsScreen = document.getElementById('myLevelsScreen');
-    if (myLevelsScreen) myLevelsScreen.classList.add('hidden');
-    showMainMenu(); // this already handles showing the home screen
+    if (myLevelsScreenEl) myLevelsScreenEl.classList.add('hidden');
+    showMainMenu();
   });
 }
+
+// Main menu → My Portals
+if (myPortalsBtn) {
+  myPortalsBtn.addEventListener('click', () => {
+    renderMyPortalsList();  // fills #myPortalsList from localStorage
+
+    showMainMenu();
+    const home = document.getElementById('homeScreen');
+    if (home) home.classList.add('hidden'); // hide home
+
+    if (myPortalsScreenEl) {
+      myPortalsScreenEl.classList.remove('hidden');
+    }
+  });
+}
+
+// My Portals → Back
+if (myPortalsBackBtn) {
+  myPortalsBackBtn.addEventListener('click', () => {
+    if (myPortalsScreenEl) myPortalsScreenEl.classList.add('hidden');
+    showMainMenu();
+  });
+}
+
 // Creator → Back to main menu
 if (creatorBackBtn) {
   creatorBackBtn.addEventListener('click', () => {

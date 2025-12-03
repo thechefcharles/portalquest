@@ -421,215 +421,164 @@
 
 <body>
   <div id="app">
-    <!-- MAIN MENU -->
-<div id="homeScreen" class="screen">
-  <div class="menu-card home-layout">
-    <h1 class="menu-title">PORTALQUEST</h1>
-    <p class="menu-subtitle">
-      Dodge enemies, outsmart traps, unlock gates, and beat entire portals.
-    </p>
 
-    <div class="home-columns">
-      <!-- PLAY COLUMN -->
-      <section class="home-section">
-        <h2 class="section-title">Play</h2>
-        <p class="section-caption">Jump into official or custom portals.</p>
+    <!-- ============================
+         MAIN MENU
+    ============================= -->
+    <div id="homeScreen" class="screen">
+      <div class="menu-card home-layout">
+        <h1 class="menu-title">PORTALQUEST</h1>
+        <p class="menu-subtitle">
+          Dodge enemies, outsmart traps, unlock gates, and beat entire portals.
+        </p>
 
-        <div class="menu-buttons">
-          <!-- Already wired in main.js -->
-          <button id="btnPlayQuest" class="menu-btn primary-btn">
-            Quest Mode (Official)
-          </button>
+        <div class="home-columns">
 
-          <!-- Already wired: level select for official quest -->
-          <button id="btnLevelSelect" class="menu-btn">
-            Quest Level Select
-          </button>
+          <!-- PLAY COLUMN -->
+          <section class="home-section">
+            <h2 class="section-title">Play</h2>
+            <p class="section-caption">Jump into official or custom portals.</p>
 
-          <!-- NEW: will later open a "My Portals" play screen -->
-          <button id="btnPlayMyPortals" class="menu-btn">
-            My Portals
-          </button>
+            <div class="menu-buttons">
+              <button id="btnPlayQuest" class="menu-btn primary-btn">
+                Quest Mode (Official)
+              </button>
+            </div>
+          </section>
 
-          <!-- NEW: will later open an "Imported Portals" screen -->
-          <button id="btnPlayImportedPortals" class="menu-btn">
-            Imported Portals
-          </button>
+          <!-- CREATE COLUMN -->
+          <section class="home-section">
+            <h2 class="section-title">Create</h2>
+            <p class="section-caption">Build levels & full portals.</p>
+
+            <div class="menu-buttons">
+              <button id="btnCreator" class="menu-btn">Level Creator</button>
+              <button id="btnMyLevels" class="menu-btn">My Levels</button>
+              <button id="btnMyPortals" class="menu-btn">My Portals</button>
+            </div>
+          </section>
+
+          <!-- SHARE COLUMN -->
+          <section class="home-section">
+            <h2 class="section-title">Share</h2>
+            <p class="section-caption">Trade levels & portals with friends.</p>
+
+            <div class="menu-buttons">
+              <button id="btnImportPortal" class="menu-btn">Import Portal</button>
+              <button id="btnImportLevel" class="menu-btn">Import Level</button>
+            </div>
+          </section>
+
         </div>
-      </section>
 
-      <!-- CREATE COLUMN -->
-      <section class="home-section">
-        <h2 class="section-title">Create</h2>
-        <p class="section-caption">Build brutal levels and full portals.</p>
-
-        <div class="menu-buttons">
-          <!-- Already wired: opens creator -->
-          <button id="btnCreator" class="menu-btn">
-            Level Creator
-          </button>
-
-          <!-- Already wired: opens My Levels screen -->
-          <button id="btnMyLevels" class="menu-btn">
-            My Levels
-          </button>
-
-          <!-- NEW: shortcut to portal editor / My Portals management -->
-          <button id="btnManagePortals" class="menu-btn">
-            My Portals (Edit)
-          </button>
+        <div class="home-footer">
+          <button id="btnQuit" class="menu-btn ghost-btn">Quit</button>
         </div>
-      </section>
-
-      <!-- SHARE COLUMN -->
-      <section class="home-section">
-        <h2 class="section-title">Share</h2>
-        <p class="section-caption">Trade levels & portals with friends.</p>
-
-        <div class="menu-buttons">
-          <!-- NEW: will open Import Portal (file picker) -->
-          <button id="btnImportPortal" class="menu-btn">
-            Import Portal
-          </button>
-
-          <!-- NEW: will open Import Level (file picker) -->
-          <button id="btnImportLevel" class="menu-btn">
-            Import Level
-          </button>
-        </div>
-      </section>
-    </div>
-
-    <div class="home-footer">
-      <button id="btnQuit" class="menu-btn ghost-btn">
-        Quit
-      </button>
-    </div>
-  </div>
-</div>
-
-    <!-- LEVEL SELECT SCREEN -->
-    <div
-      id="levelSelectScreen"
-      class="screen hidden"
-    >
-      <div class="menu-card">
-        <div class="menu-title">Select Level</div>
-        <div class="menu-subtitle">
-          Choose a quest level to start from.
-        </div>
-        <div id="levelSelectList" class="menu-buttons" style="margin-bottom: 12px;"></div>
-        <button id="btnLevelSelectBack" class="menu-btn">Back to Main Menu</button>
       </div>
     </div>
 
-        <!-- MY LEVELS SCREEN -->
-    <div
-      id="myLevelsScreen"
-      class="screen hidden"
-    >
+
+    <!-- ============================
+         QUEST PORTAL SELECT SCREEN
+    ============================= -->
+    <div id="questPortalSelectScreen" class="screen hidden">
+      <div class="menu-card">
+        <div class="menu-title">Select Portal</div>
+        <div class="menu-subtitle">Choose an official Portal to begin.</div>
+
+        <div id="questPortalList" class="menu-buttons" style="margin-bottom:16px;">
+          <!-- JS will populate “Portal 1”, “Portal 2”, etc. -->
+        </div>
+
+        <button id="btnQuestPortalBack" class="menu-btn">Back to Main Menu</button>
+      </div>
+    </div>
+
+
+    <!-- ============================
+         MY LEVELS SCREEN
+    ============================= -->
+    <div id="myLevelsScreen" class="screen hidden">
       <div class="menu-card">
         <div class="menu-title">My Levels</div>
-        <div class="menu-subtitle">
-          Edit or delete your custom levels.
-        </div>
+        <div class="menu-subtitle">Manage and edit your custom-built levels.</div>
 
-        <div id="myLevelsList" class="menu-buttons" style="margin-bottom: 12px;">
-          <!-- JS will render saved levels here -->
-        </div>
+        <div id="myLevelsList" class="menu-buttons" style="margin-bottom:12px;"></div>
 
-        <h3 style="margin-top:16px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; opacity:0.8;">
-          My Portals
-        </h3>
+        <button id="btnMyLevelsBack" class="menu-btn">Back to Main Menu</button>
+      </div>
+    </div>
 
-        <button id="btnCreatePortal" class="menu-btn" style="margin-bottom: 8px;">
+
+    <!-- ============================
+         MY PORTALS SCREEN
+    ============================= -->
+    <div id="myPortalsScreen" class="screen hidden">
+      <div class="menu-card">
+        <div class="menu-title">My Portals</div>
+        <div class="menu-subtitle">Your saved portals (created or imported).</div>
+
+        <button id="btnCreatePortal" class="menu-btn" style="margin-bottom:10px;">
           Create New Portal
         </button>
 
-        <div id="myPortalsList" class="menu-buttons" style="margin-bottom: 12px;">
-          <!-- JS will render portals here -->
-        </div>
+        <div id="myPortalsList" class="menu-buttons" style="margin-bottom:12px;"></div>
 
-        <button id="btnMyLevelsBack" class="menu-btn">Back to Main Menu</button>
-            </div>
+        <button id="btnMyPortalsBack" class="menu-btn">Back to Main Menu</button>
+      </div>
     </div>
 
-        <!-- PORTAL EDITOR OVERLAY -->
-    <div
-      id="portalEditorOverlay"
-      class="hidden"
-      style="
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(4px);
-        background: rgba(0, 0, 0, 0.6);
-        z-index: 1000;
-      "
-    >
-      <div
-        class="menu-card"
-        style="max-width: 720px; width: 100%; text-align: left;"
-      >
-        <h2 style="margin-top:0; font-size: 18px; letter-spacing: 0.12em; text-transform: uppercase;">
-          Portal Editor
-        </h2>
 
-        <!-- Name -->
-        <label style="display:block; margin-bottom: 12px; font-size: 13px;">
+    <!-- ============================
+         PORTAL EDITOR OVERLAY
+    ============================= -->
+    <div id="portalEditorOverlay" class="hidden"
+         style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+                backdrop-filter:blur(4px); background:rgba(0,0,0,0.6); z-index:1000;">
+      <div class="menu-card" style="max-width:720px; width:100%; text-align:left;">
+        <h2 style="margin-top:0;">Portal Editor</h2>
+
+        <!-- Portal Name -->
+        <label style="display:block; margin-bottom:12px;">
           Portal Name:
-          <input
-            id="portalEditorName"
-            type="text"
-            placeholder="My Portal"
-            maxlength="40"
-            style="width: 100%; margin-top: 4px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb; font-size:13px;"
-          />
+          <input id="portalEditorName"
+                 type="text"
+                 maxlength="40"
+                 placeholder="My Portal"
+                 style="width:100%; margin-top:4px; padding:6px 8px; border-radius:6px;
+                        border:1px solid rgba(148,163,184,0.6); background:#020617; color:#e5e7eb;" />
         </label>
 
-        <!-- Two-column layout -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <!-- All levels -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+
+          <!-- LEFT COLUMN: Available Levels -->
           <div>
-            <h3 style="margin:0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; opacity:0.8;">
-              Available Levels
-            </h3>
-            <div
-              id="portalEditorAvailable"
-              style="max-height: 260px; overflow-y: auto; border-radius: 8px; border: 1px solid rgba(148,163,184,0.4); padding: 8px;"
-            >
-              <!-- JS will render -->
-            </div>
+            <h3 style="margin:0 0 6px; font-size:12px;">Available Levels</h3>
+            <div id="portalEditorAvailable"
+                 style="max-height:260px; overflow-y:auto; border-radius:8px;
+                        border:1px solid rgba(148,163,184,0.4); padding:8px;"></div>
           </div>
 
-          <!-- Portal sequence -->
+          <!-- RIGHT COLUMN: Levels in Portal -->
           <div>
-            <h3 style="margin:0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; opacity:0.8;">
-              Levels in Portal (Order)
-            </h3>
-            <div
-              id="portalEditorSelected"
-              style="max-height: 260px; overflow-y: auto; border-radius: 8px; border: 1px solid rgba(148,163,184,0.4); padding: 8px;"
-            >
-              <!-- JS will render -->
-            </div>
+            <h3 style="margin:0 0 6px; font-size:12px;">Levels in Portal</h3>
+            <div id="portalEditorSelected"
+                 style="max-height:260px; overflow-y:auto; border-radius:8px;
+                        border:1px solid rgba(148,163,184,0.4); padding:8px;"></div>
           </div>
+
         </div>
 
-        <!-- Buttons -->
-        <div style="display:flex; justify-content:flex-end; gap: 8px;">
-          <button id="portalEditorCancel" class="menu-btn">
-            Cancel
-          </button>
-          <button id="portalEditorSave" class="menu-btn" style="border-color:#22c55e; background:#14532d; color:#bbf7d0;">
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button id="portalEditorCancel" class="menu-btn">Cancel</button>
+          <button id="portalEditorSave" class="menu-btn"
+                  style="border-color:#22c55e;background:#14532d;color:#bbf7d0;">
             Save Portal
           </button>
         </div>
       </div>
     </div>
-
+        
         <!-- CREATOR SCREEN -->
     <div id="creatorScreen" class="screen hidden">
       <div class="menu-card" style="width: 100%; max-width: none; text-align: left;">
