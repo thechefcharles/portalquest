@@ -47,6 +47,7 @@ function updateKeys(state) {
 }
 
 // --- Switches ---
+// --- Switches → toggle switch doors ---
 function updateSwitches(state) {
   const { player, switches, doors } = state;
   if (!switches || switches.length === 0) return;
@@ -68,10 +69,10 @@ function updateSwitches(state) {
       return;
     }
 
-    // Already processed this press
+    // Already processed this press while we're standing here
     if (sw.isPressed) return;
 
-    // Fresh press
+    // Fresh press this frame
     sw.isPressed = true;
 
     if (!sw.switchId) {
@@ -81,14 +82,15 @@ function updateSwitches(state) {
 
     doors.forEach((d) => {
       if (d.type !== "switch") return;
-      if (!d.switchDoorId) return;
-      if (d.switchDoorId !== sw.switchId) return;
 
-      // Toggle this door
+      // Support both new field (switchDoorId) and legacy (switchId) on the door
+      const doorSwitchId = d.switchDoorId ?? d.switchId;
+      if (!doorSwitchId) return;
+      if (doorSwitchId !== sw.switchId) return;
+
+      // Toggle this switch door open/closed
       d.isOpen = !d.isOpen;
-      console.log(
-        `[Logic] Toggled switch door switchDoorId="${d.switchDoorId}" isOpen=${d.isOpen}`
-      );
+      console.log(`[Logic] Toggled switch door "${doorSwitchId}" → isOpen=${d.isOpen}`);
     });
   });
 }

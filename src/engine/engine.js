@@ -137,47 +137,45 @@ function updatePlayerMovementAndWalls(state, dt) {
 const isSwitchDoor = door.type === 'switch';
 const isKeyDoor    = !door.type || door.type === 'key';
 
-// SWITCH DOORS: block only when NOT open
+// SWITCH DOORS: solid if CLOSED, pass-through if OPEN
 if (isSwitchDoor) {
-  if (door.isOpen) {
-    // Door is open → let player pass
-    continue;
+  // Default undefined isOpen to "closed"
+  if (!door.isOpen) {
+    blockAsWall();
   }
-
-  // Closed → behaves like a wall
-  blockAsWall();
+  // If isOpen === true, we DON'T block; player can walk through.
   continue;
 }
 
-    // KEY DOORS: require a matching key in inventory
-    if (isKeyDoor) {
-      // Support either keyDoorId (new) or keyId (legacy) on the door
-      const id = door.keyDoorId || door.keyId || null;
-      if (!id) {
-        console.warn('[Engine] Key door missing keyId/keyDoorId; acting as wall:', door);
-        blockAsWall();
-        continue;
-      }
+// KEY DOORS: require a matching key in inventory
+if (isKeyDoor) {
+  // Support either keyDoorId (new) or keyId (legacy) on the door
+  const id = door.keyDoorId || door.keyId || null;
+  if (!id) {
+    console.warn('[Engine] Key door missing keyId/keyDoorId; acting as wall:', door);
+    blockAsWall();
+    continue;
+  }
 
-      const currentCount = keyCounts[id] || 0;
+  const currentCount = keyCounts[id] || 0;
 
-      if (currentCount > 0) {
-        // Consume one key and remove the door
-        keyCounts[id] = currentCount - 1;
-        if (keyCounts[id] <= 0) {
-          delete keyCounts[id];
-        }
-
-        state.doors.splice(i, 1);
-        console.log(`[Engine] Opened key door with id="${id}". Remaining keys:`, keyCounts);
-        // do NOT block movement → player passes through
-        continue;
-      }
-
-      // No matching key → treat as wall
-      blockAsWall();
-      continue;
+  if (currentCount > 0) {
+    // Consume one key and remove the door
+    keyCounts[id] = currentCount - 1;
+    if (keyCounts[id] <= 0) {
+      delete keyCounts[id];
     }
+
+    state.doors.splice(i, 1);
+    console.log(`[Engine] Opened key door with id="${id}". Remaining keys:`, keyCounts);
+    // do NOT block movement → player passes through
+    continue;
+  }
+
+  // No matching key → treat as wall
+  blockAsWall();
+  continue;
+}
 
     // Any unknown door types → just block
     blockAsWall();
