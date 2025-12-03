@@ -165,6 +165,10 @@ const toolWallBtn = document.getElementById('toolWall');
 const toolSpawnBtn = document.getElementById('toolSpawn');
 const toolPortalBtn = document.getElementById('toolPortal');
 
+const questPortalSelectScreen = document.getElementById("questPortalSelectScreen");
+const questPortalList = document.getElementById("questPortalList");
+const btnQuestPortalBack = document.getElementById("btnQuestPortalBack");
+
 const toolTrapBtn = document.getElementById('toolTrap');         // NEW
 const toolPowerupBtn = document.getElementById('toolPowerup');   // NEW
 
@@ -1091,35 +1095,42 @@ if (levelNameInput) {
   });
 }
 
-// ===== Navigation / Click Handlers =====
+// =========================================================
+// NAVIGATION / CLICK HANDLERS (CLEAN + NON-REDUNDANT)
+// =========================================================
 
-// Main menu → Start Quest
+// ---------- MAIN MENU → QUEST MODE ----------
 if (playQuestBtn) {
-  playQuestBtn.addEventListener('click', () => {
+  playQuestBtn.addEventListener("click", () => {
+    // Always reset any test/custom flags
     state.customTest = false;
     state.customLevelName = null;
+    state.portalRun = null;
     showEndTestButton(false);
+
     startQuest(state);
     showQuestScreen();
   });
 }
 
-// Main menu → Level Select
+// ---------- MAIN MENU → LEVEL SELECT (BUILT-IN) ----------
 if (openLevelSelectBtn) {
-  openLevelSelectBtn.addEventListener('click', () => {
+  openLevelSelectBtn.addEventListener("click", () => {
     state.customTest = false;
     state.customLevelName = null;
+    state.portalRun = null;
     showEndTestButton(false);
+
     showLevelSelectScreen();
   });
 }
 
-// Main menu → Level Creator
+// ---------- MAIN MENU → LEVEL CREATOR ----------
 if (creatorBtn) {
-  creatorBtn.addEventListener('click', () => {
-    state.mode = 'creator';
+  creatorBtn.addEventListener("click", () => {
+    state.mode = "creator";
 
-    // NEW: if there is no current level yet, start one
+    // Auto-create a blank level if none is loaded yet
     if (!editorState.currentLevel) {
       startNewLevel();
       editorState.selectedEntity = null;
@@ -1128,236 +1139,238 @@ if (creatorBtn) {
       updateCreatorStatusFromLevel();
     }
 
-    syncCreatorNameUI(); 
-    updateSelectedEntityPanel();   // NEW
+    syncCreatorNameUI();
+    updateSelectedEntityPanel();
     showCreatorScreen();
   });
 }
 
-// Main menu → My Levels
+// =========================================================
+// MY LEVELS
+// =========================================================
 if (myLevelsBtn) {
-  myLevelsBtn.addEventListener('click', () => {
+  myLevelsBtn.addEventListener("click", () => {
     renderMyLevelsList();
 
-    showMainMenu(); // resets to home
-    const home = document.getElementById('homeScreen');
-    if (home) home.classList.add('hidden'); // hide home
+    showMainMenu();
+    document.getElementById("homeScreen")?.classList.add("hidden");
 
-    if (myLevelsScreenEl) {
-      myLevelsScreenEl.classList.remove('hidden');
-    }
+    myLevelsScreenEl?.classList.remove("hidden");
   });
 }
 
 if (myLevelsBackBtn) {
-  myLevelsBackBtn.addEventListener('click', () => {
-    if (myLevelsScreenEl) myLevelsScreenEl.classList.add('hidden');
+  myLevelsBackBtn.addEventListener("click", () => {
+    myLevelsScreenEl?.classList.add("hidden");
     showMainMenu();
   });
 }
 
-// Main menu → My Portals
+// =========================================================
+// MY PORTALS
+// =========================================================
 if (myPortalsBtn) {
-  myPortalsBtn.addEventListener('click', () => {
-    renderMyPortalsList();  // fills #myPortalsList from localStorage
+  myPortalsBtn.addEventListener("click", () => {
+    renderMyPortalsList();
 
     showMainMenu();
-    const home = document.getElementById('homeScreen');
-    if (home) home.classList.add('hidden'); // hide home
+    document.getElementById("homeScreen")?.classList.add("hidden");
 
-    if (myPortalsScreenEl) {
-      myPortalsScreenEl.classList.remove('hidden');
-    }
+    myPortalsScreenEl?.classList.remove("hidden");
   });
 }
 
-// My Portals → Back
 if (myPortalsBackBtn) {
-  myPortalsBackBtn.addEventListener('click', () => {
-    if (myPortalsScreenEl) myPortalsScreenEl.classList.add('hidden');
+  myPortalsBackBtn.addEventListener("click", () => {
+    myPortalsScreenEl?.classList.add("hidden");
     showMainMenu();
   });
 }
 
-// Creator → Back to main menu
+// =========================================================
+// CREATOR MODE BUTTONS
+// =========================================================
+
+// Back to main menu
 if (creatorBackBtn) {
-  creatorBackBtn.addEventListener('click', () => {
-    state.mode = 'menu';
+  creatorBackBtn.addEventListener("click", () => {
+    state.mode = "menu";
     showMainMenu();
     hideAllOverlays();
   });
 }
 
-// Creator → New Level
+// New Level
 if (creatorNewBtn) {
-  creatorNewBtn.addEventListener('click', () => {
+  creatorNewBtn.addEventListener("click", () => {
     startNewLevel();
 
-    // Reset tool to Select
-    setActiveTool('select');
-    if (toolSelectBtn) setToolButtonActive(toolSelectBtn);
+    // Always reset tool back to Select
+    setActiveTool("select");
+    toolSelectBtn && setToolButtonActive(toolSelectBtn);
 
-        updatePlacementPanelForTool();  // NEW
-
-    // Clear selection, hover, and update UI
     editorState.selectedEntity = null;
     editorState.hover = null;
+
     updateDeleteButtonState();
     updateCreatorStatusFromLevel();
     updateSelectedEntityPanel();
-    updatePlacementPanelForTool();  // NEW
-
-    // NEW: keep input + label in sync
+    updatePlacementPanelForTool();
     syncCreatorNameUI();
   });
 }
 
-// Creator → Delete Selected (button)
+// Delete Selected Entity
 if (creatorDeleteBtn) {
-  creatorDeleteBtn.addEventListener('click', () => {
+  creatorDeleteBtn.addEventListener("click", () => {
     if (!editorState.selectedEntity) return;
+
     deleteSelectedEntity();
+
     updateDeleteButtonState();
-    updateCreatorStatusFromLevel();
-    updateSelectedEntityPanel(); // NEW
-  });
-}
-
-// Creator tools: Select vs Wall vs Spawn vs Portal
-if (toolSelectBtn) {
-  toolSelectBtn.addEventListener('click', () => {
-    setActiveTool('select');
-    setToolButtonActive(toolSelectBtn);
-    editorState.hover = null;
-    updatePlacementPanelForTool();      // NEW
-  });
-}
-
-if (toolWallBtn) {
-  toolWallBtn.addEventListener('click', () => {
-    setActiveTool('wall');
-    setToolButtonActive(toolWallBtn);
-    updatePlacementPanelForTool();      // NEW
-  });
-}
-
-if (toolSpawnBtn) {
-  toolSpawnBtn.addEventListener('click', () => {
-    setActiveTool('spawn');
-    setToolButtonActive(toolSpawnBtn);
-    updatePlacementPanelForTool();      // NEW
-  });
-}
-
-// Trap tool
-if (toolTrapBtn) {
-  toolTrapBtn.addEventListener('click', () => {
-    setActiveTool('trap');
-    setToolButtonActive(toolTrapBtn);
-    updatePlacementPanelForTool();      // NEW
-  });
-}
-
-// Powerup tool
-if (toolPowerupBtn) {
-  toolPowerupBtn.addEventListener('click', () => {
-    setActiveTool('powerup');
-    setToolButtonActive(toolPowerupBtn);
-    updatePlacementPanelForTool();      // NEW
-  });
-}
-
-if (doorTypeSelect) {
-  doorTypeSelect.addEventListener('change', (e) => {
-    const sel   = editorState.selectedEntity;
-    const level = editorState.currentLevel;
-    if (!sel || sel.kind !== 'door') return;
-
-    const d = (level.doors || [])[sel.index];
-    if (!d) return;
-
-    const newType = e.target.value === 'switch' ? 'switch' : 'key';
-    d.type = newType;
-
-    if (newType === 'key') {
-      // keep keyDoorId, clear switchDoorId
-      d.keyDoorId    = d.keyDoorId || '';
-      d.switchDoorId = null;
-    } else {
-      // keep switchDoorId, clear keyDoorId
-      d.switchDoorId = d.switchDoorId || '';
-      d.keyDoorId    = null;
-    }
-
     updateCreatorStatusFromLevel();
     updateSelectedEntityPanel();
   });
 }
 
+// =========================================================
+// CREATOR TOOL BUTTONS
+// =========================================================
 
-// Key Door ID input → door.keyDoorId (key doors only)
-if (doorIdInput) {
-  doorIdInput.addEventListener('input', (e) => {
-    const level = editorState.currentLevel;
-    const sel   = editorState.selectedEntity;
-    if (!level || !sel || sel.kind !== 'door') return;
+// Select Tool
+toolSelectBtn?.addEventListener("click", () => {
+  setActiveTool("select");
+  setToolButtonActive(toolSelectBtn);
+  editorState.hover = null;
+  updatePlacementPanelForTool();
+});
 
-    const doors = level.doors || [];
-    const d     = doors[sel.index];
-    if (!d || d.type !== 'key') return;
+// Wall Tool
+toolWallBtn?.addEventListener("click", () => {
+  setActiveTool("wall");
+  setToolButtonActive(toolWallBtn);
+  updatePlacementPanelForTool();
+});
 
-    d.keyDoorId = e.target.value.trim() || null;
-    updateCreatorStatusFromLevel();
-  });
-}
+// Spawn Tool
+toolSpawnBtn?.addEventListener("click", () => {
+  setActiveTool("spawn");
+  setToolButtonActive(toolSpawnBtn);
+  updatePlacementPanelForTool();
+});
 
-// Key ID input → key.keyId
-if (keyIdInput) {
-  keyIdInput.addEventListener('input', (e) => {
-    const level = editorState.currentLevel;
-    const sel   = editorState.selectedEntity;
-    if (!level || !sel || sel.kind !== 'key') return;
+// Trap Tool
+toolTrapBtn?.addEventListener("click", () => {
+  setActiveTool("trap");
+  setToolButtonActive(toolTrapBtn);
+  updatePlacementPanelForTool();
+});
 
-    const keys = level.keys || [];
-    const k = keys[sel.index];
-    if (!k) return;
+// Powerup Tool
+toolPowerupBtn?.addEventListener("click", () => {
+  setActiveTool("powerup");
+  setToolButtonActive(toolPowerupBtn);
+  updatePlacementPanelForTool();
+});
 
-    k.keyId = e.target.value.trim() || null;
-    updateCreatorStatusFromLevel();
-  });
-}
+// Door Tool (Key or Switch)
+toolDoorBtn?.addEventListener("click", () => {
+  setActiveTool("door");
+  setToolButtonActive(toolDoorBtn);
+  updatePlacementPanelForTool();
+});
 
-// Switch ID input → switch.switchId
-if (switchIdInput) {
-  switchIdInput.addEventListener('input', (e) => {
-    const level = editorState.currentLevel;
-    const sel   = editorState.selectedEntity;
-    if (!level || !sel || sel.kind !== 'switch') return;
+// Key Tool
+toolKeyBtn?.addEventListener("click", () => {
+  setActiveTool("key");
+  setToolButtonActive(toolKeyBtn);
+  updatePlacementPanelForTool();
+});
 
-    const switches = level.switches || [];
-    const sw = switches[sel.index];
-    if (!sw) return;
+// Switch Tool
+toolSwitchBtn?.addEventListener("click", () => {
+  setActiveTool("switch");
+  setToolButtonActive(toolSwitchBtn);
+  updatePlacementPanelForTool();
+});
 
-    sw.switchId = e.target.value.trim() || null;
-    updateCreatorStatusFromLevel();
-  });
-}
+// Enemy Tool
+toolEnemyBtn?.addEventListener("click", () => {
+  setActiveTool("enemy");
+  setToolButtonActive(toolEnemyBtn);
+  updatePlacementPanelForTool();
+});
 
-// Switch Door ID input → door.switchDoorId (switch doors only)
-if (switchDoorsInput) {
-  switchDoorsInput.addEventListener('input', (e) => {
-    const level = editorState.currentLevel;
-    const sel   = editorState.selectedEntity;
-    if (!level || !sel || sel.kind !== 'door') return;
+// Portal Tool
+toolPortalBtn?.addEventListener("click", () => {
+  setActiveTool("portal");
+  setToolButtonActive(toolPortalBtn);
+  updatePlacementPanelForTool();
+});
 
-    const doors = level.doors || [];
-    const d     = doors[sel.index];
-    if (!d || d.type !== 'switch') return;
+// =========================================================
+// DOOR, KEY, SWITCH EDITORS
+// =========================================================
 
-    d.switchDoorId = e.target.value.trim() || null;
-    updateCreatorStatusFromLevel();
-  });
-}
+// Door type (key/switch)
+doorTypeSelect?.addEventListener("change", (e) => {
+  const sel = editorState.selectedEntity;
+  const level = editorState.currentLevel;
+  if (!sel || sel.kind !== "door") return;
+
+  const d = level.doors[sel.index];
+  if (!d) return;
+
+  const t = e.target.value;
+  d.type = t;
+
+  if (t === "key") {
+    d.keyDoorId = d.keyDoorId || "";
+    d.switchDoorId = null;
+  } else {
+    d.switchDoorId = d.switchDoorId || "";
+    d.keyDoorId = null;
+  }
+
+  updateCreatorStatusFromLevel();
+  updateSelectedEntityPanel();
+});
+
+// Key ID
+keyIdInput?.addEventListener("input", (e) => {
+  const sel = editorState.selectedEntity;
+  if (!sel || sel.kind !== "key") return;
+
+  const lvl = editorState.currentLevel;
+  lvl.keys[sel.index].keyId = e.target.value.trim() || null;
+
+  updateCreatorStatusFromLevel();
+});
+
+// Switch ID
+switchIdInput?.addEventListener("input", (e) => {
+  const sel = editorState.selectedEntity;
+  if (!sel || sel.kind !== "switch") return;
+
+  const lvl = editorState.currentLevel;
+  lvl.switches[sel.index].switchId = e.target.value.trim() || null;
+
+  updateCreatorStatusFromLevel();
+});
+
+// Door -> switch-controlled ID
+switchDoorsInput?.addEventListener("input", (e) => {
+  const sel = editorState.selectedEntity;
+  if (!sel || sel.kind !== "door") return;
+
+  const lvl = editorState.currentLevel;
+  const d = lvl.doors[sel.index];
+  if (d.type !== "switch") return;
+
+  d.switchDoorId = e.target.value.trim() || null;
+
+  updateCreatorStatusFromLevel();
+});
 
 // ===== Rect orientation + length (walls / doors) =====
 if (rectOrientationSelect) {
@@ -1797,39 +1810,45 @@ if (pauseMainMenuBtn) {
   });
 }
 
-// Level complete buttons
+// ----- Level Complete → Next Level -----
 if (levelNextBtn) {
-  levelNextBtn.addEventListener('click', () => {
-    // If we’re in a custom portal run
+  levelNextBtn.addEventListener("click", () => {
+
+    // 🌀 If in a CUSTOM PORTAL RUN (My Portals)
     if (state.portalRun && state.portalRun.type === "custom") {
       const run = state.portalRun;
       const nextIdx = (run.indexInPortal ?? 0) + 1;
 
       if (nextIdx < run.levelIds.length) {
+        // Load next level of *this* portal only
         run.indexInPortal = nextIdx;
         const nextId = run.levelIds[nextIdx];
-        const nextLevel = loadLevelById(nextId);
+        const saved = loadLevelById(nextId);
+        const data  = saved?.data || saved;
 
-        if (nextLevel?.data) {
-          loadLevelDataIntoState(state, nextLevel.data);
+        if (data) {
+          loadLevelDataIntoState(state, data);
           state.quest.status = "playing";
           state.isPaused = false;
           hideAllOverlays();
+        } else {
+          console.warn("[NextLevel] Missing portal level:", nextId);
         }
       } else {
-        // End of portal → treat as quest/portal complete
+        // Finished the whole portal
         state.quest.status = "questComplete";
         state.isPaused = true;
         hideAllOverlays();
         showQuestCompleteOverlay();
       }
-
       return;
     }
 
-    // Otherwise, fall back to normal built-in quest behavior
-    advanceQuestLevel(state);
-    hideAllOverlays();
+    // 🌟 Otherwise normal built-in Quest Mode
+    if (!state.portalRun) {
+      advanceQuestLevel(state);
+      hideAllOverlays();
+    }
   });
 }
 
