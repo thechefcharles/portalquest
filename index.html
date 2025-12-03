@@ -187,7 +187,7 @@
     font-size: 9px;
     opacity: 0.7;
   }
-  
+
   /* Danger/Delete button for Creator */
   .danger-btn {
     width: 100%;
@@ -551,27 +551,28 @@
     Select / Move
   </button>
 
-  <!-- BUILD -->
-  <div class="tool-section">
-    <div class="tool-section-title">Build</div>
-    <div class="tool-grid">
-      <!-- Wall -->
-      <button id="toolWall" class="tool-btn" data-tooltip="Solid wall">
-        <div class="tool-pill-icon">🧱</div>
-        <div class="tool-pill-label">Wall</div>
-      </button>
+<!-- BUILD -->
+<div class="tool-section">
+  <div class="tool-section-title">Build</div>
+  <div class="tool-grid">
 
-      <!-- Gate (Door: key or switch, configured on the right) -->
-      <button id="toolDoor" class="tool-btn" data-tooltip="Gate (Key or Switch)">
-        <div class="tool-pill-icon">🚪</div>
-        <div class="tool-pill-label">Gate</div>
-        <div class="tool-pill-sub">
-          <span>Key Gate</span> • <span>Switch Gate</span>
-        </div>
-      </button>
-    </div>
+    <!-- WALL -->
+    <button class="tool-btn" data-group="build" data-type="wall">
+      🧱 <span class="tool-pill-label">Wall</span>
+    </button>
+
+    <!-- KEY GATE -->
+    <button class="tool-btn" data-group="build" data-type="key-gate">
+      🔑 <span class="tool-pill-label">Key Gate</span>
+    </button>
+
+    <!-- SWITCH GATE -->
+    <button class="tool-btn" data-group="build" data-type="switch-gate">
+      🔘 <span class="tool-pill-label">Switch Gate</span>
+    </button>
+
   </div>
-
+</div>
   <!-- ITEMS -->
   <div class="tool-section">
     <div class="tool-section-title">Items</div>
@@ -592,12 +593,14 @@
   <div class="tool-section">
     <div class="tool-section-title">Powerups</div>
     <div class="tool-grid">
-      <button id="toolPowerup" class="tool-btn" data-tooltip="Speed / Dash / Shield">
-        <div class="tool-pill-icon">✨</div>
-        <div class="tool-pill-label">Powerup</div>
-        <div class="tool-pill-sub">
-          <span>Speed</span> • <span>Dash</span> • <span>Shield</span>
-        </div>
+      <button id="toolPowerup" class="tool-btn" data-type="speed" data-group="powerup">
+        ⚡ <span class="tool-pill-label">Speed</span>
+      </button>
+      <button id="toolPowerupDash" class="tool-btn" data-type="dash" data-group="powerup">
+        💨 <span class="tool-pill-label">Dash</span>
+      </button>
+      <button id="toolPowerupShield" class="tool-btn" data-type="shield" data-group="powerup">
+        🛡️ <span class="tool-pill-label">Shield</span>
       </button>
     </div>
   </div>
@@ -606,12 +609,17 @@
   <div class="tool-section">
     <div class="tool-section-title">Traps</div>
     <div class="tool-grid">
-      <button id="toolTrap" class="tool-btn" data-tooltip="Poison / Fire / Glue / Spike">
-        <div class="tool-pill-icon">⚠️</div>
-        <div class="tool-pill-label">Trap</div>
-        <div class="tool-pill-sub">
-          <span>Poison</span> • <span>Fire</span> • <span>Glue</span> • <span>Spike</span>
-        </div>
+      <button id="toolTrapPoison" class="tool-btn" data-type="poison" data-group="trap">
+        ☠️ <span class="tool-pill-label">Poison</span>
+      </button>
+      <button id="toolTrapFire" class="tool-btn" data-type="fire" data-group="trap">
+        🔥 <span class="tool-pill-label">Fire</span>
+      </button>
+      <button id="toolTrapGlue" class="tool-btn" data-type="glue" data-group="trap">
+        🧴 <span class="tool-pill-label">Glue</span>
+      </button>
+      <button id="toolTrapSpike" class="tool-btn" data-type="spike" data-group="trap">
+        🗡️ <span class="tool-pill-label">Spike</span>
       </button>
     </div>
   </div>
@@ -620,12 +628,14 @@
   <div class="tool-section">
     <div class="tool-section-title">Enemies</div>
     <div class="tool-grid">
-      <button id="toolEnemy" class="tool-btn" data-tooltip="Patrol / Chaser / Spinner">
-        <div class="tool-pill-icon">👾</div>
-        <div class="tool-pill-label">Enemy</div>
-        <div class="tool-pill-sub">
-          <span>Patrol</span> • <span>Chaser</span> • <span>Spinner</span>
-        </div>
+      <button id="toolEnemyPatrol" class="tool-btn" data-type="patrol" data-group="enemy">
+        🚶 <span class="tool-pill-label">Patrol</span>
+      </button>
+      <button id="toolEnemyChaser" class="tool-btn" data-type="chaser" data-group="enemy">
+        🧠 <span class="tool-pill-label">Chaser</span>
+      </button>
+      <button id="toolEnemySpinner" class="tool-btn" data-type="spinner" data-group="enemy">
+        🔄 <span class="tool-pill-label">Spinner</span>
       </button>
     </div>
   </div>

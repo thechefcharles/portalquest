@@ -203,50 +203,33 @@ export function deleteSelectedEntity() {
   const sel = editorState.selectedEntity;
   if (!level || !sel) return;
 
+  // NEVER delete the spawn or the portal
+  if (sel.kind === "spawn" || sel.kind === "portal") {
+    return; // ignore deletion
+  }
+
   switch (sel.kind) {
-    case "spawn":
-      console.warn("[Editor] Player spawn cannot be deleted.");
+    case "obstacle":
+      level.obstacles.splice(sel.index, 1);
       break;
-
-    case "portal":
-      console.warn("[Editor] Portal cannot be deleted.");
+    case "trap":
+      level.traps.splice(sel.index, 1);
       break;
-
-    case "obstacle": {
-      const arr = level.obstacles || [];
-      if (sel.index >= 0 && sel.index < arr.length) arr.splice(sel.index, 1);
+    case "powerup":
+      level.powerups.splice(sel.index, 1);
       break;
-    }
-    case "trap": {
-      const arr = level.traps || [];
-      if (sel.index >= 0 && sel.index < arr.length) arr.splice(sel.index, 1);
+    case "key":
+      level.keys.splice(sel.index, 1);
       break;
-    }
-    case "powerup": {
-      const arr = level.powerups || [];
-      if (sel.index >= 0 && sel.index < arr.length) arr.splice(sel.index, 1);
+    case "door":
+      level.doors.splice(sel.index, 1);
       break;
-    }
-    case "key": {
-      const arr = level.keys || [];
-      if (sel.index >= 0 && sel.index < arr.length) arr.splice(sel.index, 1);
+    case "switch":
+      level.switches.splice(sel.index, 1);
       break;
-    }
-    case "door": {
-      const arr = level.doors || [];
-      if (sel.index >= 0 && sel.index < arr.length) arr.splice(sel.index, 1);
+    case "enemy":
+      level.enemies.splice(sel.index, 1);
       break;
-    }
-    case "switch": {
-      const arr = level.switches || [];
-      if (sel.index >= 0 && sel.index < arr.length) arr.splice(sel.index, 1);
-      break;
-    }
-    case "enemy": {
-      const arr = level.enemies || [];
-      if (sel.index >= 0 && sel.index < arr.length) arr.splice(sel.index, 1);
-      break;
-    }
   }
 
   editorState.selectedEntity = null;

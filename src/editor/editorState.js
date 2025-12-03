@@ -1,6 +1,8 @@
 // src/editor/editorState.js
 // Central place to track Level Creator state.
 
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, PORTAL_RADIUS } from "../core/config.js";
+
 export const editorState = {
   currentLevel: null,
   activeTool: 'select',
@@ -8,24 +10,33 @@ export const editorState = {
   hover: null,
   isTesting: false,
 
-  // NEW: active placement types for tools
   activeTrapType: 'fire',
   activePowerupType: 'speed',
-  activeWallType: 'solid', // future-proof, only "solid" for now
+  activeWallType: 'solid',
 };
 
-/**
- * Start a completely new level (used when hitting "Level Creator" / "New Level").
- */
 export function startNewLevel() {
+  const w = CANVAS_WIDTH || 568;   // fallbacks in case
+  const h = CANVAS_HEIGHT || 390;
+
   editorState.currentLevel = {
     id: 'custom-' + Date.now(),   // local id for this editor session
     name: 'Untitled Level',
     mode: 'quest',
-    width: 800,
-    height: 600,
-    start: { x: 100, y: 500 },
-    portal: { x: 700, y: 100, r: 20 },
+    width: w,
+    height: h,
+
+    // ✅ spawn & portal start *inside* the visible area
+    start: { 
+      x: GRID_SIZE * 2,           // ~2 tiles from left
+      y: h - GRID_SIZE * 3        // near bottom, but visible
+    },
+    portal: { 
+      x: w - GRID_SIZE * 2,       // ~2 tiles from right
+      y: GRID_SIZE * 2,           // near top
+      r: PORTAL_RADIUS || 20
+    },
+
     obstacles: [],
     enemies: [],
     powerups: [],
@@ -116,7 +127,7 @@ export function buildLevelPayloadForSave() {
 export function loadLevelFromSave(saved) {
   if (!saved) return;
 
-  const src = saved.data || saved; // support both {id,name,data} and raw
+  const src  = saved.data || saved;
   const base = { ...src };
 
   const id =
@@ -131,31 +142,31 @@ export function loadLevelFromSave(saved) {
         ? base.name
         : 'Untitled Level';
 
-  editorState.currentLevel = {
-    // Identity
+  const w = base.width  ?? CANVAS_WIDTH  ?? 568;
+  const h = base.height ?? CANVAS_HEIGHT ?? 390;
+
+  editorState.currentementLevel = {
     id,
     name,
-
-    // Copy everything from the saved data
     ...base,
 
-    // Then enforce defaults for the fields we rely on
-    mode: base.mode ?? 'quest',
-    width: typeof base.width === 'number' ? base.width : 800,
-    height: typeof base.height === 'number' ? base.height : 600,
-    start: base.start ?? { x: 100, y: 500 },
-    portal: base.portal ?? { x: 700, y: 100, r: 20 },
+    mode:   base.mode   ?? 'quest',
+    width:  w,
+    height: h,
+
+    // ✅ if missing, give visible defaults
+    start:  base.start  ?? { x: GRID_SIZE * 2,     y: h - GRID_SIZE * 3 },
+    portal: base.portal ?? { x: w - GRID_SIZE * 2, y: GRID_SIZE * 2, r: PORTAL_RADIUS || 20 },
 
     obstacles: Array.isArray(base.obstacles) ? base.obstacles : [],
-    enemies: Array.isArray(base.enemies) ? base.enemies : [],
-    powerups: Array.isArray(base.powerups) ? base.powerups : [],
-    traps: Array.isArray(base.traps) ? base.traps : [],
-    keys: Array.isArray(base.keys) ? base.keys : [],
-    doors: Array.isArray(base.doors) ? base.doors : [],
-    switches: Array.isArray(base.switches) ? base.switches : [],
+    enemies:   Array.isArray(base.enemies)   ? base.enemies   : [],
+    powerups:  Array.isArray(base.powerups)  ? base.powerups  : [],
+    traps:     Array.isArray(base.traps)     ? base.traps     : [],
+    keys:      Array.isArray(base.keys)      ? base.keys      : [],
+    doors:     Array.isArray(base.doors)     ? base.doors     : [],
+    switches:  Array.isArray(base.switches)  ? base.switches  : [],
   };
 
-  // Reset editor UI state
   editorState.activeTool = 'select';
   editorState.selectedEntity = null;
   editorState.hover = null;

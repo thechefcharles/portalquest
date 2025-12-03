@@ -1017,6 +1017,68 @@ function setToolButtonActive(activeBtn) {
   }
 }
 
+// ========= Subtype Buttons (Trap, Powerup, Enemy) =========
+
+// Trap subtype buttons
+const trapButtons = document.querySelectorAll('[data-group="trap"]');
+trapButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.type;
+    editorState.activeTrapType = type;
+    setActiveTool('trap');
+    setToolButtonActive(btn);
+    updatePlacementPanelForTool();
+  });
+});
+
+// Powerup subtype buttons
+const powerupButtons = document.querySelectorAll('[data-group="powerup"]');
+powerupButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.type;
+    editorState.activePowerupType = type;
+    setActiveTool('powerup');
+    setToolButtonActive(btn);
+    updatePlacementPanelForTool();
+  });
+});
+
+// Enemy subtype buttons
+const enemyButtons = document.querySelectorAll('[data-group="enemy"]');
+enemyButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.type;
+    editorState.activeEnemyType = type;
+    setActiveTool('enemy');
+    setToolButtonActive(btn);
+    updatePlacementPanelForTool();
+  });
+});
+
+// ===== BUILD subtype buttons (Wall, Key Gate, Switch Gate) =====
+
+const buildButtons = document.querySelectorAll('[data-group="build"]');
+buildButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const type = btn.dataset.type;
+
+    // Highlight clicked button
+    setToolButtonActive(btn);
+
+    if (type === "wall") {
+      setActiveTool("wall");
+    }
+    else if (type === "key-gate") {
+      setActiveTool("door");
+      editorState.activeDoorType = "key";   // NEW
+    }
+    else if (type === "switch-gate") {
+      setActiveTool("door");
+      editorState.activeDoorType = "switch"; // NEW
+    }
+  });
+});
+
 // ===== Level Name Input Binding =====
 if (levelNameInput) {
   levelNameInput.addEventListener('input', (e) => {
@@ -2048,7 +2110,7 @@ if (editorCanvas) {
       placeEnemyAtGrid(gridX, gridY, 'patrol');
       updateCreatorStatusFromLevel();
       returnToSelectTool();
-      
+
     } else if (tool === 'select') {
       const hit = findEntityAtPixel(x, y);
       const currentSel = editorState.selectedEntity;

@@ -111,19 +111,22 @@ export function placeDoorAtGrid(gridX, gridY, type = "key") {
   const level = editorState.currentLevel;
   if (!level) return;
 
+  // Pull subtype from editor
+  type = editorState.activeDoorType || type;
+
   const x = gridX * GRID_SIZE;
   const y = gridY * GRID_SIZE;
 
   level.doors = level.doors || [];
   level.doors.push({
-    type,            // "key" OR "switch"
-    keyDoorId: null, // used when type === "key"
-    switchDoorId: null, // used when type === "switch"
+    type,
+    keyDoorId: null,
+    switchDoorId: null,
     x,
     y,
     w: GRID_SIZE,
     h: GRID_SIZE * 1.5,
-    isOpen: false,   // useful later for switch doors
+    isOpen: false
   });
 }
 
@@ -150,15 +153,18 @@ export function placeSwitchAtGrid(gridX, gridY) {
 }
 
 // Place an enemy at the given grid cell
-export function placeEnemyAtGrid(gridX, gridY, type = "patrol") {
+export function placeEnemyAtGrid(gridX, gridY, type) {
   const level = editorState.currentLevel;
   if (!level) return;
+
+  // If a specific subtype is active, use it
+  type = editorState.activeEnemyType || type || "patrol";
 
   const x = gridX * GRID_SIZE;
   const y = gridY * GRID_SIZE;
   const w = GRID_SIZE * 0.8;
   const h = GRID_SIZE * 0.8;
-
+  
   level.enemies = level.enemies || [];
 
   if (type === "patrol") {
