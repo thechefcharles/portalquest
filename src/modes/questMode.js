@@ -1,8 +1,7 @@
 // src/modes/questMode.js
 import { QUEST_LEVELS } from '../data/questLevels.js';
-import { loadLevelIntoState } from '../core/state.js';
+import { loadLevelIntoState, loadLevelDataIntoState } from '../core/state.js';
 import { loadLevelById } from '../core/levelStorage.js';
-import { loadLevelDataIntoState } from '../core/state.js';
 
 export function startQuest(state) {
   return startQuestAtLevel(state, 0);
@@ -19,9 +18,47 @@ export function startQuestAtLevel(state, levelIndex) {
 }
 
 export function restartQuest(state) {
-  // 🚫 Never restart the real quest while in Creator Test
+  // 🚫 Never restart anything while in Creator Test
   if (state.mode === 'creator' && state.customTest) return;
 
+  // 1) If we are in a CUSTOM PORTAL RUN (My Portals)
+  if (state.portalRun && state.portalRun.type === 'custom') {
+    const portal = state.portalRun;
+
+    // Reset portal progress & lives
+    portal.indexInPortal = 0;
+    state.quest.lives = 3;
+    state.quest.status = 'playing';
+    state.isPaused = false;
+
+    const firstId = portal.levelIds[0];
+    const saved = loadLevelById(firstId);
+    const data = saved?.data;
+
+    if (data) {
+      // Load the first level of THIS portal, not QUEST_LEVELS[0]
+      loadLevelDataIntoState(state, data);
+    } else {
+      console.warn('[questMode] restartQuest: missing level for portal', firstId);
+      state.quest.status = 'gameOver';
+      state.isPaused = true;
+    }
+
+    return;
+  }
+
+  // 2) If we were playing a SINGLE CUSTOM LEVEL (from My Levels → Play)
+  if (state.customLevelName && state.lastLoadedCustomLevel) {
+    state.quest.lives = 3;
+    state.quest.status = 'playing';
+    state.isPaused = false;
+
+    loadLevelDataIntoState(state, state.lastLoadedCustomLevel);
+    return;
+  }
+
+  // 3) Otherwise: normal built-in Quest (Portal 1)
+  state.portalRun = null; // make sure
   state.quest.currentLevelIndex = 0;
   state.quest.lives = 3;
   state.quest.status = 'playing';

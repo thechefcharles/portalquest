@@ -812,7 +812,7 @@ const LEVEL_10 = {
   width: CANVAS_WIDTH,
   height: CANVAS_HEIGHT,
 
-  start: { x: 80, y: CANVAS_HEIGHT - 140 },
+  start: { x: 80, y: CANVAS_HEIGHT - 160 },
   portal: { x: CANVAS_WIDTH - 80, y: 100, r: PORTAL_RADIUS },
 
   obstacles: [
