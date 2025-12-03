@@ -8,7 +8,7 @@ function distance(x1, y1, x2, y2) {
 
 export function updateLogic(state, dt) {
   updateKeys(state);
-  // We'll add updateSwitches(state) later
+  updateSwitches(state);
 }
 
 /* ===========================
@@ -47,7 +47,6 @@ function updateKeys(state) {
 }
 
 // --- Switches ---
-
 function updateSwitches(state) {
   const { player, switches, doors } = state;
   if (!switches || switches.length === 0) return;
@@ -57,35 +56,39 @@ function updateSwitches(state) {
   const py = player.y + player.h / 2;
 
   switches.forEach((sw) => {
-    if (sw.activated) return;
-
     const inside =
       px >= sw.x &&
       px <= sw.x + sw.w &&
       py >= sw.y &&
       py <= sw.y + sw.h;
 
-    if (!inside) return;
-
-    // Activate the switch
-    sw.activated = true;
-
-    if (sw.doorIds && sw.doorIds.length > 0) {
-      // Open specific doors by id
-      for (let i = doors.length - 1; i >= 0; i--) {
-        const d = doors[i];
-        if (d.doorId && sw.doorIds.includes(d.doorId)) {
-          doors.splice(i, 1);
-        }
-      }
-    } else {
-      // No explicit doorIds: open ALL switch doors
-      for (let i = doors.length - 1; i >= 0; i--) {
-        const d = doors[i];
-        if (d.type === "switch") {
-          doors.splice(i, 1);
-        }
-      }
+    // Not standing on the switch → allow it to be pressed again later
+    if (!inside) {
+      sw.isPressed = false;
+      return;
     }
+
+    // Already processed this press
+    if (sw.isPressed) return;
+
+    // Fresh press
+    sw.isPressed = true;
+
+    if (!sw.switchId) {
+      console.warn("[Logic] Switch has no switchId; it won't affect any doors:", sw);
+      return;
+    }
+
+    doors.forEach((d) => {
+      if (d.type !== "switch") return;
+      if (!d.switchDoorId) return;
+      if (d.switchDoorId !== sw.switchId) return;
+
+      // Toggle this door
+      d.isOpen = !d.isOpen;
+      console.log(
+        `[Logic] Toggled switch door switchDoorId="${d.switchDoorId}" isOpen=${d.isOpen}`
+      );
+    });
   });
 }

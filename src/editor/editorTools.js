@@ -140,13 +140,12 @@ export function placeSwitchAtGrid(gridX, gridY) {
 
   level.switches = level.switches || [];
   level.switches.push({
-    switchId: null,
-    doorIds: [],
+    switchId: null,   // will be set in inspector
     x: x + (GRID_SIZE - w) / 2,
     y: y + (GRID_SIZE - h) / 2,
     w,
     h,
-    activated: false,
+    isPressed: false, // used by logic system
   });
 }
 

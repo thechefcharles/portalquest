@@ -767,8 +767,8 @@ function updateSelectedEntityPanel() {
   if (rectOrientationRow) rectOrientationRow.style.display = 'none';
   if (rectLengthRow)      rectLengthRow.style.display      = 'none';
   if (keyIdRow)           keyIdRow.style.display           = 'none';
-  if (doorIdRow)          doorIdRow.style.display          = 'none';
   if (switchIdRow)        switchIdRow.style.display        = 'none';
+  if (doorIdRow)          doorIdRow.style.display          = 'none';
   if (switchDoorsRow)     switchDoorsRow.style.display     = 'none';
 
   let label = '';
@@ -781,10 +781,10 @@ function updateSelectedEntityPanel() {
   let showEnemyDir        = false;
   let showRectOrientation = false;
   let showRectLength      = false;
-  let showKeyId           = false;        // key.keyId
-  let showKeyDoorId       = false;        // door.keyDoorId
-  let showSwitchId        = false;        // switch.switchId
-  let showSwitchDoorId    = false;        // door.switchDoorId
+  let showKeyId           = false;   // key.keyId
+  let showSwitchId        = false;   // switch.switchId
+  let showKeyDoorId       = false;   // door.keyDoorId
+  let showSwitchDoorId    = false;   // door.switchDoorId
 
   /* ───────── Traps ───────── */
   if (sel.kind === 'trap') {
@@ -826,7 +826,7 @@ function updateSelectedEntityPanel() {
       const validTypes = ['key', 'switch'];
       const type       = validTypes.includes(d.type) ? d.type : 'key';
 
-      d.type = type; // normalize
+      d.type = type;  // normalize
       doorTypeSelect.value = type;
 
       if (type === 'key') {
@@ -842,7 +842,6 @@ function updateSelectedEntityPanel() {
       }
     }
 
-    // Orientation + length for door
     if (d && rectOrientationSelect && rectLengthInput) {
       const horizontal = d.w >= d.h;
       rectOrientationSelect.value = horizontal ? 'horizontal' : 'vertical';
@@ -881,7 +880,7 @@ function updateSelectedEntityPanel() {
 
         if (axis === 'horizontal') {
           dir = vx >= 0 ? 'right' : 'left';
-          if (enemyDirRow && enemyDirSelect) {
+          if (enemyDirSelect) {
             enemyDirSelect.innerHTML = `
               <option value="right">Right</option>
               <option value="left">Left</option>
@@ -889,7 +888,7 @@ function updateSelectedEntityPanel() {
           }
         } else {
           dir = vx >= 0 ? 'down' : 'up';
-          if (enemyDirRow && enemyDirSelect) {
+          if (enemyDirSelect) {
             enemyDirSelect.innerHTML = `
               <option value="down">Down</option>
               <option value="up">Up</option>
@@ -975,6 +974,7 @@ function updateSelectedEntityPanel() {
   if (doorIdRow)          doorIdRow.style.display          = showKeyDoorId ? 'flex' : 'none';
   if (switchDoorsRow)     switchDoorsRow.style.display     = showSwitchDoorId ? 'flex' : 'none';
 }
+
 function showEndTestButton(show) {
   if (!endTestBtn) return;
   endTestBtn.classList.toggle('hidden', !show);

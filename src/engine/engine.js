@@ -134,14 +134,20 @@ function updatePlayerMovementAndWalls(state, dt) {
       }
     };
 
-    const isSwitchDoor = door.type === 'switch';
-    const isKeyDoor    = !door.type || door.type === 'key';
+const isSwitchDoor = door.type === 'switch';
+const isKeyDoor    = !door.type || door.type === 'key';
 
-    // SWITCH DOORS: for now always closed (solid)
-    if (isSwitchDoor) {
-      blockAsWall();
-      continue;
-    }
+// SWITCH DOORS: block only when NOT open
+if (isSwitchDoor) {
+  if (door.isOpen) {
+    // Door is open → let player pass
+    continue;
+  }
+
+  // Closed → behaves like a wall
+  blockAsWall();
+  continue;
+}
 
     // KEY DOORS: require a matching key in inventory
     if (isKeyDoor) {
