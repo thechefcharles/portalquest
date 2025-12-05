@@ -88,6 +88,16 @@ const editorCtx = editorCanvas ? editorCanvas.getContext('2d') : null;
 
 const state = createGameState();
 
+// ===== Virtual Joystick DOM =====
+const joystickEl = document.getElementById('virtualJoystick');
+const joystickThumbEl = document.getElementById('joystickThumb');
+
+const joystickState = {
+  active: false,
+  centerX: 0,
+  centerY: 0,
+};
+
 // ===== Buttons (match your HTML) =====
 const playQuestBtn = document.getElementById('btnPlayQuest');
 const openLevelSelectBtn = document.getElementById('btnLevelSelect');
@@ -2347,6 +2357,117 @@ function showSaveStatus(message, isError = false) {
   creatorSaveStatusEl._timeoutId = setTimeout(() => {
     creatorSaveStatusEl.textContent = '';
   }, 2500);
+}
+
+// ===== Virtual Joystick (touch) → 360° analog movement =====
+function clearJoystickKeys() {
+  state.keysDown['ArrowUp'] = false;
+  state.keysDown['ArrowDown'] = false;
+  state.keysDown['ArrowLeft'] = false;
+  state.keysDown['ArrowRight'] = false;
+  state.keysDown['w'] = false;
+  state.keysDown['a'] = false;
+  state.keysDown['s'] = false;
+  state.keysDown['d'] = false;
+}
+
+// dx, dy are from joystick center → touch position
+function applyJoystickDirection(dx, dy) {
+  // Only respond while a quest is actively playing
+  if (state.mode !== 'quest' || !state.quest || state.quest.status !== 'playing') {
+    clearJoystickKeys();
+    return;
+  }
+
+  const mag = Math.sqrt(dx * dx + dy * dy);
+
+  // Dead zone: thumb near center = no movement
+  if (mag < 10) {
+    clearJoystickKeys();
+    return;
+  }
+
+  const nx = dx / mag;
+  const ny = dy / mag;
+
+  // Reset keys then set 8-way based on angle
+  clearJoystickKeys();
+
+  const THRESH = 0.3; // lower → easier diagonals
+
+  // Horizontal component
+  if (nx > THRESH) {
+    state.keysDown["ArrowRight"] = true;
+    state.keysDown["d"] = true;
+  } else if (nx < -THRESH) {
+    state.keysDown["ArrowLeft"] = true;
+    state.keysDown["a"] = true;
+  }
+
+  // Vertical component (note: screen Y grows downward, but engine treats
+  // "ArrowUp" as up, so we keep ny sign consistent with your earlier logic)
+  if (ny > THRESH) {
+    state.keysDown["ArrowDown"] = true;
+    state.keysDown["s"] = true;
+  } else if (ny < -THRESH) {
+    state.keysDown["ArrowUp"] = true;
+    state.keysDown["w"] = true;
+  }
+}
+
+if (joystickEl && joystickThumbEl) {
+  console.log('[Joystick] found elements, setting up listeners');
+  const maxRadius = 40; // how far the thumb can move from center
+
+  joystickEl.addEventListener(
+    'touchstart',
+    (e) => {
+      const t = e.touches[0];
+      const rect = joystickEl.getBoundingClientRect();
+      joystickState.active = true;
+      joystickState.centerX = rect.left + rect.width / 2;
+      joystickState.centerY = rect.top + rect.height / 2;
+      console.log('[Joystick] touchstart');
+      e.preventDefault();
+    },
+    { passive: false }
+  );
+
+  joystickEl.addEventListener(
+    'touchmove',
+    (e) => {
+      if (!joystickState.active) return;
+      const t = e.touches[0];
+
+      const dx = t.clientX - joystickState.centerX;
+      const dy = t.clientY - joystickState.centerY;
+
+      // Clamp thumb movement visually
+      const mag = Math.sqrt(dx * dx + dy * dy) || 1;
+      const clampedMag = Math.min(mag, maxRadius);
+      const cx = (dx / mag) * clampedMag;
+      const cy = (dy / mag) * clampedMag;
+
+      joystickThumbEl.style.transform = `translate(${cx}px, ${cy}px)`;
+
+      applyJoystickDirection(dx, dy);
+      e.preventDefault();
+    },
+    { passive: false }
+  );
+
+const endJoystick = () => {
+  if (!joystickState.active) return;
+  joystickState.active = false;
+  joystickThumbEl.style.transform = 'translate(0, 0)';
+
+  clearJoystickKeys();
+  console.log('[Joystick] end');
+};
+  joystickEl.addEventListener('touchend', endJoystick, { passive: false });
+  joystickEl.addEventListener('touchcancel', endJoystick, { passive: false });
+} else {
+  console.warn('[Joystick] elements NOT found:', joystickEl, joystickThumbEl);
 }
 
 // ===== Game Loop =====

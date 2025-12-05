@@ -75,9 +75,12 @@ export function createGameState() {
 
     keysDown: {},
 
+    // Analog joystick (for mobile / gamepad)
+    joystickAxis: { x: 0, y: 0 },
+
     timeLeft: 999,
     score: 0,
-
+    
     // Legacy / generic flags
     lives: 3,
     gameOver: false,
