@@ -661,17 +661,19 @@ function playPortalFromMyLevels(portalId) {
   const firstLevel = loadLevelById(firstId);
   if (!firstLevel || !firstLevel.data) return;
 
-state.portalRun = {
-  type: "custom",
-  portalId: portal.id,
-  name: portal.name,
-  levelIds: portal.levelIds.slice(),
-  indexInPortal: 0,
-};
+  // Mark this as a CUSTOM PORTAL RUN (My Portals)
+  state.portalRun = {
+    type: "custom",
+    portalId: portal.id,
+    name: portal.name,
+    levelIds: portal.levelIds.slice(),
+    indexInPortal: 0,
+  };
 
-// ⬇️ ADD THIS
-state.currentCustomLevelData = firstLevel.data;
+  // Store first level data in case you want it later
+  state.currentCustomLevelData = firstLevel.data;
 
+  // This is a real quest-style run, not a test
   state.customTest = false;
   state.customLevelName = null;
   state.mode = "quest";
@@ -679,12 +681,11 @@ state.currentCustomLevelData = firstLevel.data;
 
   if (!state.quest) state.quest = {};
   state.quest.status = "playing";
-  state.quest.lives = 3;
+  state.quest.lives = 3;                 // ✅ always start portal with 3 lives
 
   loadLevelDataIntoState(state, firstLevel.data);
 
-  // ⬇️ THIS LINE
-  if (myPortalsScreenEl) myPortalsScreenEl.classList.add('hidden');
+  if (myPortalsScreenEl) myPortalsScreenEl.classList.add("hidden");
 
   hideAllOverlays();
   showQuestScreen();
@@ -696,11 +697,13 @@ function playLevelFromMyLevels(levelId) {
 
   const levelData = saved.data || saved;
 
-  // Mark this as a custom run
-  state.customTest = true;
+  // This is a REAL single-level run, not a Creator test
+  state.customTest = false;                         // ✅ NOT test mode
+  state.portalRun = null;                           // not in a portal
   state.customLevelName = saved.name || 'Custom Level';
+  state.lastLoadedCustomLevel = levelData;          // used by restartQuest
 
-  // Put the game into quest mode
+  // Put the game into quest mode with 3 lives
   state.mode = 'quest';
   state.isPaused = false;
 
@@ -708,15 +711,12 @@ function playLevelFromMyLevels(levelId) {
     state.quest = {};
   }
   state.quest.status = 'playing';
-  state.quest.lives = 3;
-  state.quest.levelIndex = 0;  // single custom level
+  state.quest.lives = 3;                            // ✅ always start with 3
 
   // Load custom level into engine
   loadLevelDataIntoState(state, levelData);
 
-  // Hide My Levels screen and show Quest screen
-  const myLevelsScreen = document.getElementById('myLevelsScreen');
-  if (myLevelsScreen) myLevelsScreen.classList.add('hidden');
+  if (myLevelsScreenEl) myLevelsScreenEl.classList.add('hidden');
 
   hideAllOverlays();
   showQuestScreen();
@@ -1853,38 +1853,52 @@ if (pauseMainMenuBtn) {
 if (levelNextBtn) {
   levelNextBtn.addEventListener("click", () => {
 
-    // 🌀 If in a CUSTOM PORTAL RUN (My Portals)
-    if (state.portalRun && state.portalRun.type === "custom") {
-      const run = state.portalRun;
-      const nextIdx = (run.indexInPortal ?? 0) + 1;
+if (state.portalRun && state.portalRun.type === "custom") {
+  const run = state.portalRun;
+  const nextIdx = (run.indexInPortal ?? 0) + 1;
 
-      if (nextIdx < run.levelIds.length) {
-        // Load next level of *this* portal only
-        run.indexInPortal = nextIdx;
-        const nextId = run.levelIds[nextIdx];
-        const saved = loadLevelById(nextId);
-        const data  = saved?.data || saved;
+  if (nextIdx < run.levelIds.length) {
+    // Save health before loading next level
+    const prevHealth = state.player.health;
 
-        if (data) {
-          loadLevelDataIntoState(state, data);
-          state.quest.status = "playing";
-          state.isPaused = false;
-          hideAllOverlays();
-        } else {
-          console.warn("[NextLevel] Missing portal level:", nextId);
-        }
-      } else {
-        // Finished the whole portal
-        state.quest.status = "questComplete";
-        state.isPaused = true;
-        hideAllOverlays();
-        showQuestCompleteOverlay();
-      }
+    run.indexInPortal = nextIdx;
+    const nextId = run.levelIds[nextIdx];
+    const saved = loadLevelById(nextId);
+    const data  = saved?.data || saved;
+
+    if (data) {
+      loadLevelDataIntoState(state, data);
+
+      // Restore health (capped), so My Portals also carry health across levels
+      state.player.health = Math.min(prevHealth, state.player.maxHealth);
+
+      state.quest.status = "playing";
+      state.isPaused = false;
+      hideAllOverlays();
+    } else {
+      console.warn("[NextLevel] Missing portal level:", nextId);
+    }
+  } else {
+    // Finished the whole custom portal
+    state.quest.status = "questComplete";
+    state.isPaused = true;
+    hideAllOverlays();
+    showQuestCompleteOverlay();
+  }
+  return;
+}
+    // 2️⃣ SINGLE CUSTOM LEVEL RUN (My Levels)
+    if (!state.portalRun && state.customLevelName && state.lastLoadedCustomLevel) {
+      // For now, treat "Next Level" as "Play Again" on this single level
+      loadLevelDataIntoState(state, state.lastLoadedCustomLevel);
+      state.quest.status = "playing";
+      state.isPaused = false;
+      hideAllOverlays();
       return;
     }
 
-    // 🌟 Otherwise normal built-in Quest Mode
-    if (!state.portalRun) {
+    // 3️⃣ BUILT-IN QUEST MODE (QUEST_LEVELS)
+    if (!state.portalRun && !state.customLevelName) {
       advanceQuestLevel(state);
       hideAllOverlays();
     }

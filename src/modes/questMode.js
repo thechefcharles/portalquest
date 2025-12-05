@@ -68,13 +68,13 @@ export function restartQuest(state) {
 }
 
 export function restartCurrentLevel(state) {
-  // Creator Test handled in main.js
+  // 0️⃣ Creator Test is handled in main.js; do nothing here
   if (state.mode === 'creator' && state.customTest) return;
 
   state.quest.status = 'playing';
   state.isPaused = false;
 
-  // If we're running a custom portal
+  // 1️⃣ CUSTOM PORTAL RUN (My Portals)
   if (state.portalRun && state.portalRun.type === "custom") {
     const idx = state.portalRun.indexInPortal ?? 0;
     const levelId = state.portalRun.levelIds[idx];
@@ -86,7 +86,14 @@ export function restartCurrentLevel(state) {
     }
   }
 
-  // Fallback: official quest level
+  // 2️⃣ SINGLE CUSTOM LEVEL RUN (My Levels → Play)
+  if (!state.portalRun && state.customLevelName && state.lastLoadedCustomLevel) {
+    // Reload that exact custom level
+    loadLevelDataIntoState(state, state.lastLoadedCustomLevel);
+    return;
+  }
+
+  // 3️⃣ Built-in Quest Mode (QUEST_LEVELS)
   loadLevelIntoState(state, state.quest.currentLevelIndex);
 }
 export function advanceQuestLevel(state) {
@@ -98,11 +105,17 @@ export function advanceQuestLevel(state) {
     return;
   }
 
+  // Save current health to carry into the next level
+  const prevHealth = state.player.health;
+
   state.quest.currentLevelIndex++;
   state.quest.status = 'playing';
   state.isPaused = false;
 
   loadLevelIntoState(state, state.quest.currentLevelIndex);
+
+  // Restore health (capped to maxHealth) so it carries over
+  state.player.health = Math.min(prevHealth, state.player.maxHealth);
 }
 
 export function handlePlayerDeath(state) {
