@@ -88,6 +88,16 @@ const editorCtx = editorCanvas ? editorCanvas.getContext('2d') : null;
 
 const state = createGameState();
 
+// ===== Virtual Joystick DOM =====
+const joystickEl = document.getElementById('virtualJoystick');
+const joystickThumbEl = document.getElementById('joystickThumb');
+
+const joystickState = {
+  active: false,
+  centerX: 0,
+  centerY: 0,
+};
+
 // ===== Buttons (match your HTML) =====
 const playQuestBtn = document.getElementById('btnPlayQuest');
 const openLevelSelectBtn = document.getElementById('btnLevelSelect');
@@ -661,17 +671,19 @@ function playPortalFromMyLevels(portalId) {
   const firstLevel = loadLevelById(firstId);
   if (!firstLevel || !firstLevel.data) return;
 
-state.portalRun = {
-  type: "custom",
-  portalId: portal.id,
-  name: portal.name,
-  levelIds: portal.levelIds.slice(),
-  indexInPortal: 0,
-};
+  // Mark this as a CUSTOM PORTAL RUN (My Portals)
+  state.portalRun = {
+    type: "custom",
+    portalId: portal.id,
+    name: portal.name,
+    levelIds: portal.levelIds.slice(),
+    indexInPortal: 0,
+  };
 
-// ⬇️ ADD THIS
-state.currentCustomLevelData = firstLevel.data;
+  // Store first level data in case you want it later
+  state.currentCustomLevelData = firstLevel.data;
 
+  // This is a real quest-style run, not a test
   state.customTest = false;
   state.customLevelName = null;
   state.mode = "quest";
@@ -679,12 +691,11 @@ state.currentCustomLevelData = firstLevel.data;
 
   if (!state.quest) state.quest = {};
   state.quest.status = "playing";
-  state.quest.lives = 3;
+  state.quest.lives = 3;                 // ✅ always start portal with 3 lives
 
   loadLevelDataIntoState(state, firstLevel.data);
 
-  // ⬇️ THIS LINE
-  if (myPortalsScreenEl) myPortalsScreenEl.classList.add('hidden');
+  if (myPortalsScreenEl) myPortalsScreenEl.classList.add("hidden");
 
   hideAllOverlays();
   showQuestScreen();
@@ -696,11 +707,13 @@ function playLevelFromMyLevels(levelId) {
 
   const levelData = saved.data || saved;
 
-  // Mark this as a custom run
-  state.customTest = true;
+  // This is a REAL single-level run, not a Creator test
+  state.customTest = false;                         // ✅ NOT test mode
+  state.portalRun = null;                           // not in a portal
   state.customLevelName = saved.name || 'Custom Level';
+  state.lastLoadedCustomLevel = levelData;          // used by restartQuest
 
-  // Put the game into quest mode
+  // Put the game into quest mode with 3 lives
   state.mode = 'quest';
   state.isPaused = false;
 
@@ -708,15 +721,12 @@ function playLevelFromMyLevels(levelId) {
     state.quest = {};
   }
   state.quest.status = 'playing';
-  state.quest.lives = 3;
-  state.quest.levelIndex = 0;  // single custom level
+  state.quest.lives = 3;                            // ✅ always start with 3
 
   // Load custom level into engine
   loadLevelDataIntoState(state, levelData);
 
-  // Hide My Levels screen and show Quest screen
-  const myLevelsScreen = document.getElementById('myLevelsScreen');
-  if (myLevelsScreen) myLevelsScreen.classList.add('hidden');
+  if (myLevelsScreenEl) myLevelsScreenEl.classList.add('hidden');
 
   hideAllOverlays();
   showQuestScreen();
@@ -1853,38 +1863,52 @@ if (pauseMainMenuBtn) {
 if (levelNextBtn) {
   levelNextBtn.addEventListener("click", () => {
 
-    // 🌀 If in a CUSTOM PORTAL RUN (My Portals)
-    if (state.portalRun && state.portalRun.type === "custom") {
-      const run = state.portalRun;
-      const nextIdx = (run.indexInPortal ?? 0) + 1;
+if (state.portalRun && state.portalRun.type === "custom") {
+  const run = state.portalRun;
+  const nextIdx = (run.indexInPortal ?? 0) + 1;
 
-      if (nextIdx < run.levelIds.length) {
-        // Load next level of *this* portal only
-        run.indexInPortal = nextIdx;
-        const nextId = run.levelIds[nextIdx];
-        const saved = loadLevelById(nextId);
-        const data  = saved?.data || saved;
+  if (nextIdx < run.levelIds.length) {
+    // Save health before loading next level
+    const prevHealth = state.player.health;
 
-        if (data) {
-          loadLevelDataIntoState(state, data);
-          state.quest.status = "playing";
-          state.isPaused = false;
-          hideAllOverlays();
-        } else {
-          console.warn("[NextLevel] Missing portal level:", nextId);
-        }
-      } else {
-        // Finished the whole portal
-        state.quest.status = "questComplete";
-        state.isPaused = true;
-        hideAllOverlays();
-        showQuestCompleteOverlay();
-      }
+    run.indexInPortal = nextIdx;
+    const nextId = run.levelIds[nextIdx];
+    const saved = loadLevelById(nextId);
+    const data  = saved?.data || saved;
+
+    if (data) {
+      loadLevelDataIntoState(state, data);
+
+      // Restore health (capped), so My Portals also carry health across levels
+      state.player.health = Math.min(prevHealth, state.player.maxHealth);
+
+      state.quest.status = "playing";
+      state.isPaused = false;
+      hideAllOverlays();
+    } else {
+      console.warn("[NextLevel] Missing portal level:", nextId);
+    }
+  } else {
+    // Finished the whole custom portal
+    state.quest.status = "questComplete";
+    state.isPaused = true;
+    hideAllOverlays();
+    showQuestCompleteOverlay();
+  }
+  return;
+}
+    // 2️⃣ SINGLE CUSTOM LEVEL RUN (My Levels)
+    if (!state.portalRun && state.customLevelName && state.lastLoadedCustomLevel) {
+      // For now, treat "Next Level" as "Play Again" on this single level
+      loadLevelDataIntoState(state, state.lastLoadedCustomLevel);
+      state.quest.status = "playing";
+      state.isPaused = false;
+      hideAllOverlays();
       return;
     }
 
-    // 🌟 Otherwise normal built-in Quest Mode
-    if (!state.portalRun) {
+    // 3️⃣ BUILT-IN QUEST MODE (QUEST_LEVELS)
+    if (!state.portalRun && !state.customLevelName) {
       advanceQuestLevel(state);
       hideAllOverlays();
     }
@@ -2333,6 +2357,117 @@ function showSaveStatus(message, isError = false) {
   creatorSaveStatusEl._timeoutId = setTimeout(() => {
     creatorSaveStatusEl.textContent = '';
   }, 2500);
+}
+
+// ===== Virtual Joystick (touch) → 360° analog movement =====
+function clearJoystickKeys() {
+  state.keysDown['ArrowUp'] = false;
+  state.keysDown['ArrowDown'] = false;
+  state.keysDown['ArrowLeft'] = false;
+  state.keysDown['ArrowRight'] = false;
+  state.keysDown['w'] = false;
+  state.keysDown['a'] = false;
+  state.keysDown['s'] = false;
+  state.keysDown['d'] = false;
+}
+
+// dx, dy are from joystick center → touch position
+function applyJoystickDirection(dx, dy) {
+  // Only respond while a quest is actively playing
+  if (state.mode !== 'quest' || !state.quest || state.quest.status !== 'playing') {
+    clearJoystickKeys();
+    return;
+  }
+
+  const mag = Math.sqrt(dx * dx + dy * dy);
+
+  // Dead zone: thumb near center = no movement
+  if (mag < 10) {
+    clearJoystickKeys();
+    return;
+  }
+
+  const nx = dx / mag;
+  const ny = dy / mag;
+
+  // Reset keys then set 8-way based on angle
+  clearJoystickKeys();
+
+  const THRESH = 0.3; // lower → easier diagonals
+
+  // Horizontal component
+  if (nx > THRESH) {
+    state.keysDown["ArrowRight"] = true;
+    state.keysDown["d"] = true;
+  } else if (nx < -THRESH) {
+    state.keysDown["ArrowLeft"] = true;
+    state.keysDown["a"] = true;
+  }
+
+  // Vertical component (note: screen Y grows downward, but engine treats
+  // "ArrowUp" as up, so we keep ny sign consistent with your earlier logic)
+  if (ny > THRESH) {
+    state.keysDown["ArrowDown"] = true;
+    state.keysDown["s"] = true;
+  } else if (ny < -THRESH) {
+    state.keysDown["ArrowUp"] = true;
+    state.keysDown["w"] = true;
+  }
+}
+
+if (joystickEl && joystickThumbEl) {
+  console.log('[Joystick] found elements, setting up listeners');
+  const maxRadius = 40; // how far the thumb can move from center
+
+  joystickEl.addEventListener(
+    'touchstart',
+    (e) => {
+      const t = e.touches[0];
+      const rect = joystickEl.getBoundingClientRect();
+      joystickState.active = true;
+      joystickState.centerX = rect.left + rect.width / 2;
+      joystickState.centerY = rect.top + rect.height / 2;
+      console.log('[Joystick] touchstart');
+      e.preventDefault();
+    },
+    { passive: false }
+  );
+
+  joystickEl.addEventListener(
+    'touchmove',
+    (e) => {
+      if (!joystickState.active) return;
+      const t = e.touches[0];
+
+      const dx = t.clientX - joystickState.centerX;
+      const dy = t.clientY - joystickState.centerY;
+
+      // Clamp thumb movement visually
+      const mag = Math.sqrt(dx * dx + dy * dy) || 1;
+      const clampedMag = Math.min(mag, maxRadius);
+      const cx = (dx / mag) * clampedMag;
+      const cy = (dy / mag) * clampedMag;
+
+      joystickThumbEl.style.transform = `translate(${cx}px, ${cy}px)`;
+
+      applyJoystickDirection(dx, dy);
+      e.preventDefault();
+    },
+    { passive: false }
+  );
+
+const endJoystick = () => {
+  if (!joystickState.active) return;
+  joystickState.active = false;
+  joystickThumbEl.style.transform = 'translate(0, 0)';
+
+  clearJoystickKeys();
+  console.log('[Joystick] end');
+};
+  joystickEl.addEventListener('touchend', endJoystick, { passive: false });
+  joystickEl.addEventListener('touchcancel', endJoystick, { passive: false });
+} else {
+  console.warn('[Joystick] elements NOT found:', joystickEl, joystickThumbEl);
 }
 
 // ===== Game Loop =====

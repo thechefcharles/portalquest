@@ -441,7 +441,7 @@
 
             <div class="menu-buttons">
               <button id="btnPlayQuest" class="menu-btn primary-btn">
-                Portal Mode
+                Quest Mode
               </button>
             </div>
           </section>
@@ -583,7 +583,14 @@
     <div id="creatorScreen" class="screen hidden">
       <div class="menu-card" style="width: 100%; max-width: none; text-align: left;">
         <!-- Top bar -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+<div
+  style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 62px 0 0px; /* top 16px, bottom 20px */
+  "
+>
           <div style="display:flex; gap: 8px; align-items: center;">
             <button id="btnCreatorBack" class="menu-btn" style="padding: 6px 14px;">← Back</button>
             <h2 style="margin: 0; font-size: 18px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.9;">
@@ -1094,9 +1101,11 @@
           </div>
 
 <h2>Quest</h2>
-<button id="btnRestartLevel" class="quest-btn">Restart Level</button>
-<button id="btnRestartQuest" class="quest-btn">Restart Portal</button>
-<button id="btnBackToMenu" class="quest-btn">Back to Main Menu</button>
+<div style="margin-top: 16px;">
+  <button id="btnRestartLevel" class="quest-btn">Restart Level</button>
+  <button id="btnRestartQuest" class="quest-btn">Restart Quest</button>
+  <button id="btnBackToMenu" class="quest-btn">Back to Main Menu</button>
+</div>
 
 </aside>
 
@@ -1144,6 +1153,37 @@
               <button id="questcomplete-main-menu-btn">Main Menu</button>
             </div>
           </div>
+
+                <!-- Virtual joystick for mobile -->
+      <div
+        id="virtualJoystick"
+        style="
+          position: absolute;
+          left: 12px;
+          bottom: 12px;
+          width: 120px;
+          height: 120px;
+          border-radius: 999px;
+          background: radial-gradient(circle, rgba(15,23,42,0.9), rgba(15,23,42,0.6));
+          border: 1px solid rgba(148,163,184,0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          touch-action: none;
+        "
+      >
+        <div
+          id="joystickThumb"
+          style="
+            width: 52px;
+            height: 52px;
+            border-radius: 999px;
+            background: radial-gradient(circle, #6ef2ff, #1d4ed8);
+            box-shadow: 0 0 12px rgba(110,242,255,0.6);
+          "
+        ></div>
+      </div>
+      
         </main>
       </div>
     </div>

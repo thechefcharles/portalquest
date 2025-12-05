@@ -67,18 +67,19 @@ function updatePlayerMovementAndWalls(state, dt) {
   let moveX = 0;
   let moveY = 0;
 
+  // Movement is always driven by keysDown
   if (keysDown["ArrowLeft"] || keysDown["a"]) moveX -= 1;
   if (keysDown["ArrowRight"] || keysDown["d"]) moveX += 1;
   if (keysDown["ArrowUp"] || keysDown["w"]) moveY -= 1;
   if (keysDown["ArrowDown"] || keysDown["s"]) moveY += 1;
 
-  // Normalize diagonal movement
+  // Normalize diagonal movement (keyboard or virtual joystick)
   if (moveX !== 0 || moveY !== 0) {
     const len = Math.sqrt(moveX * moveX + moveY * moveY);
     moveX /= len;
     moveY /= len;
   }
-
+    
   const oldX = player.x;
   const oldY = player.y;
 

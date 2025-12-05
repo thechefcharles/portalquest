@@ -24,7 +24,13 @@ export function updateHUDDom(state) {
   }
 
   // ===== CORE HUD =====
-  hudLives.textContent = String(state.lives ?? 3);
+  // Lives: use quest.lives when available
+  const lives =
+    state.quest && typeof state.quest.lives === "number"
+      ? state.quest.lives
+      : (state.lives ?? 3);  // fallback for safety
+
+  hudLives.textContent = String(lives);
   hudHealth.textContent = String(Math.round(player.health));
   hudScore.textContent = String(state.score ?? 0);
   hudDash.textContent = String(player.dashCharges ?? 0);
