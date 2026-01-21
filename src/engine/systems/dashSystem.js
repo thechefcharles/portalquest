@@ -61,4 +61,7 @@ export function tryDash(state) {
 
   // brief invulnerability while dashing
   player.hazardInvulnTimer = Math.max(player.hazardInvulnTimer || 0, 0.2);
+
+  // NEW: mark dash window so shooting is blocked during dash
+  player.dashTimer = 0.16;
 }

@@ -50,6 +50,10 @@ export function createGameState() {
       health: 100,
       maxHealth: 100,
 
+            // NEW: ammo + dash timer (Phase 1 baseline)
+      ammo: Infinity,     // later we’ll set this via “ammo emblem”
+      dashTimer: 0,       // >0 means “currently dashing” for fire-block
+
       shieldTimer: 0,
       speedBoostTimer: 0,
       poisonTimer: 0,
@@ -69,6 +73,20 @@ export function createGameState() {
     keys: [],
     doors: [],
     switches: [],
+
+        // NEW: projectiles + weapon config
+    projectiles: [],
+    weapon: {
+      cooldown: 0.18,          // seconds between shots
+      lastShotTime: -999,
+      projectileSpeed: 650,    // px/s
+      projectileRadius: 4,
+      projectileLife: 1.2,     // seconds
+      damage: 25,
+    },
+
+    // NEW: internal enemy id counter
+    _enemyIdCounter: 1,
 
     hasKey: false,          // old single-key flag (can keep or ignore)
     keyCounts: {},          // NEW: inventory of keys by keyId
@@ -111,6 +129,7 @@ function applyLevelToState(state, level) {
   state.player.hazardInvulnTimer = 0;
   state.player.slowFactor = 1;
   state.player.onFire = false;
+  state.player.dashTimer = 0;
 
   // Portal
   state.portal.x = level.portal.x;
@@ -119,12 +138,31 @@ function applyLevelToState(state, level) {
 
   // Clone arrays so we don't mutate the originals
   state.obstacles = (level.obstacles || []).map((o) => ({ ...o }));
-  state.enemies = (level.enemies || []).map((e) => ({ ...e }));
   state.powerups = (level.powerups || []).map((p) => ({ ...p }));
   state.traps = (level.traps || []).map((t) => ({ ...t }));
   state.keys = (level.keys || []).map((k) => ({ ...k }));
   state.doors = (level.doors || []).map((d) => ({ ...d }));
   state.switches = (level.switches || []).map((s) => ({ ...s }));
+  state.projectiles = [];
+    state.enemies = (level.enemies || []).map((e) => {
+    const copy = { ...e };
+
+    // Stable per-run enemy id (needed for projectile hit tracking)
+    copy._id = state._enemyIdCounter++;
+
+    // Default HP by type (tune later)
+    const type = copy.type || "patrol";
+    const defaultHp =
+      type === "chaser" ? 75 :
+      type === "spinner" ? 60 :
+      50; // patrol
+
+    copy.maxHp = copy.maxHp ?? defaultHp;
+    copy.hp = copy.hp ?? copy.maxHp;
+    copy.dead = false;
+
+    return copy;
+  });
 
   state.hasKey = false;
   state.keyCounts = {};

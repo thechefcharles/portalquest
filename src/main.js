@@ -78,6 +78,7 @@ import {
   loadPortalById,
   deletePortalById,
 } from './core/portalStorage.js';
+import { tryShoot } from "./engine/systems/projectileSystem.js";
 
 // ===== Canvas Setup =====
 const canvas = document.getElementById('game');
@@ -105,6 +106,16 @@ const joystickState = {
   centerX: 0,
   centerY: 0,
 };
+
+const shootBtn = document.getElementById("btnShoot");
+if (shootBtn) {
+  const fire = (e) => {
+    e.preventDefault();
+    tryShoot(state);
+  };
+  shootBtn.addEventListener("touchstart", fire, { passive: false });
+  shootBtn.addEventListener("mousedown", fire);
+}
 
 // ===== Buttons (match your HTML) =====
 const playQuestBtn = document.getElementById('btnPlayQuest');
@@ -2003,9 +2014,15 @@ window.addEventListener('keydown', (e) => {
     if (state.customTest && editorState.isTesting) {
       state.keysDown[e.key] = true;
 
-      if (e.key === ' ' || e.code === 'Space') {
-        tryDash(state);
-      }
+// Space = Shoot (semi-auto)
+if ((e.key === " " || e.code === "Space") && !e.repeat) {
+  tryShoot(state);
+}
+
+// Temporary: Shift = Dash (until Phase 2 double-tap dash)
+if (e.key === "Shift" && !e.repeat) {
+  tryDash(state);
+}
 
       // Optional: ESC ends test
       if (e.key === 'Escape') {
@@ -2050,9 +2067,15 @@ window.addEventListener('keydown', (e) => {
   if (state.mode === 'quest' && state.quest && state.quest.status === 'playing') {
     state.keysDown[e.key] = true;
 
-    if (e.key === ' ' || e.code === 'Space') {
-      tryDash(state);
-    }
+// Space = Shoot (semi-auto)
+if ((e.key === " " || e.code === "Space") && !e.repeat) {
+  tryShoot(state);
+}
+
+// Temporary: Shift = Dash (until Phase 2 double-tap dash)
+if (e.key === "Shift" && !e.repeat) {
+  tryDash(state);
+}
   }
 
   if (e.key === 'Escape') {

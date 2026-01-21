@@ -7,6 +7,11 @@ import { updatePowerups } from "./systems/powerupSystem.js";
 import { updateTraps } from "./systems/trapSystem.js";
 import { updateLogic } from "./systems/logicSystem.js";
 import { loadLevelDataIntoState } from "../core/state.js";
+import {
+  tryShoot,
+  updateProjectiles,
+  handleProjectileEnemyCollisions,
+} from "./systems/projectileSystem.js";
 
 
 function distance(x1, y1, x2, y2) {
@@ -35,6 +40,9 @@ export function updateGame(state, dt) {
   updateLogic(state, dt);
   handlePlayerEnemyCollisions(state, dt);
   checkPortal(state);
+    // NEW: projectiles
+  updateProjectiles(state, dt);
+  handleProjectileEnemyCollisions(state);
 }
 
 function rectsOverlap(a, b) {
@@ -55,6 +63,12 @@ function updatePlayerMovementAndWalls(state, dt) {
   // Speed buff
   if (player.speedBoostTimer > 0) {
     speed *= 1.6;
+  }
+
+    // NEW: dash timer tick-down (used to block shooting during dash)
+  if (state.player.dashTimer > 0) {
+    state.player.dashTimer -= dt;
+    if (state.player.dashTimer < 0) state.player.dashTimer = 0;
   }
 
   // Glue slow

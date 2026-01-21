@@ -22,6 +22,7 @@ export function renderGame(ctx, state) {
 
   drawLevelStatic(ctx, state);
   drawEnemies(ctx, state);
+  drawProjectiles(ctx, state);
   drawPlayer(ctx, state.player);
   drawHealthBar(ctx, state.player);
 
@@ -453,4 +454,17 @@ function drawOverlayText(ctx, width, height, text) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(text, width / 2, height / 2);
+}
+
+function drawProjectiles(ctx, state) {
+  const arr = state.projectiles || [];
+  if (!arr.length) return;
+
+  ctx.save();
+  for (const p of arr) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
