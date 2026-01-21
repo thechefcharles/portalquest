@@ -393,6 +393,22 @@
   box-shadow: 0 0 14px rgba(110, 242, 255, 0.7);
 }
 
+.shoot-btn {
+  position: fixed;
+  right: 10%;
+  bottom: 14%;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff4545, #8b0000);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  z-index: 900;
+  touch-action: none;
+}
+
 /* Overlays */
 .overlay {
   position: absolute;
@@ -1483,9 +1499,11 @@
       </div>
 
       <!-- Virtual joystick (mobile only, hidden on desktop via media query) -->
-      <div id="virtualJoystick">
-        <div id="joystickThumb"></div>
-      </div>
+<div id="virtualJoystick">
+  <div id="joystickThumb"></div>
+</div>
+
+<button id="btnShoot" class="shoot-btn">Shoot</button>
     </div>
     
 </div> <!-- end #app -->
