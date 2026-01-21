@@ -92,6 +92,14 @@ const state = createGameState();
 const joystickEl = document.getElementById('virtualJoystick');
 const joystickThumbEl = document.getElementById('joystickThumb');
 
+if (joystickEl) {
+  // 🔧 Hard override ANY hidden / display:none that might be hanging around
+  joystickEl.classList.remove('hidden');
+  joystickEl.style.display = 'flex';
+  joystickEl.style.opacity = '1';
+  joystickEl.style.pointerEvents = 'auto';
+}
+
 const joystickState = {
   active: false,
   centerX: 0,
